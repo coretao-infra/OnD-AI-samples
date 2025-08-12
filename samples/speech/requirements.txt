@@ -1,5 +1,7 @@
-faster-whisper>=0.9.0
-sounddevice>=0.4.6
+openai-whisper
+numpy
+torch
+sounddevice
+soundcard
 webrtcvad>=2.0.10
-numpy>=1.21.0
-rich>=13.0.0
+rich
