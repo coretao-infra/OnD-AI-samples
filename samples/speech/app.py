@@ -38,6 +38,7 @@ class AudioCapture:
         self.audio_queue = queue.Queue(maxsize=AUDIO_QUEUE_SIZE)
         self.is_recording = False
         self.stream = None
+        self.console = Console()
         
         # VAD state
         self.current_utterance = []
@@ -47,30 +48,82 @@ class AudioCapture:
     def audio_callback(self, indata, frames, time, status):
         """Called by sounddevice for each audio frame."""
         if status:
-            print(f"Audio callback status: {status}")
+            self.console.print(f"[yellow]Audio callback status: {status}[/yellow]")
         
         # Convert to int16 for VAD and queue for processing
         audio_int16 = (indata[:, 0] * 32767).astype(np.int16)
         
+        # Log audio levels periodically
+        if hasattr(self, '_callback_count'):
+            self._callback_count += 1
+        else:
+            self._callback_count = 1
+            
+        if self._callback_count % 50 == 0:  # Every ~1.5 seconds at 30ms frames
+            max_amplitude = np.max(np.abs(audio_int16))
+            self.console.print(f"[dim]Audio level: {max_amplitude} (frames processed: {self._callback_count})[/dim]")
+        
         try:
             self.audio_queue.put_nowait(audio_int16)
         except queue.Full:
-            # Skip frame if queue is full
+            self.console.print("[red]Warning: Audio queue full, dropping frame[/red]")
             pass
     
     def start_capture(self):
         """Start audio capture."""
+        self.console.print("[blue]🎙️ Starting audio capture...[/blue]")
         self.is_recording = True
-        self.stream = sd.InputStream(
-            samplerate=SAMPLE_RATE,
-            channels=1,
-            dtype=np.float32,
-            blocksize=FRAMES_PER_BUFFER,
-            device=self.device_index,
-            callback=self.audio_callback
-        )
-        self.stream.start()
-        print(f"Started audio capture (device: {self.device_index})")
+        
+        # Use specified device or system default input device
+        device_to_use = self.device_index
+        if device_to_use is None:
+            # Get the actual default input device from the system
+            try:
+                device_to_use = sd.default.device[0]  # [0] is input, [1] is output
+                if device_to_use == -1:
+                    raise ValueError("No default input device configured")
+                self.console.print(f"[green]Using system default input device: {device_to_use}[/green]")
+            except Exception as e:
+                self.console.print(f"[yellow]Could not get default input device ({e}), searching manually...[/yellow]")
+                # Fallback: find first real microphone device (skip Stereo Mix and PC Speaker)
+                devices = sd.query_devices()
+                for i, device in enumerate(devices):
+                    if (device['max_input_channels'] > 0 and 
+                        'microphone' in device['name'].lower() and 
+                        'stereo mix' not in device['name'].lower() and
+                        'pc speaker' not in device['name'].lower()):
+                        device_to_use = i
+                        self.console.print(f"[green]Found microphone device {i}: {device['name']}[/green]")
+                        break
+                if device_to_use is None:
+                    raise RuntimeError("No suitable input devices found")
+        
+        # Get device info and use its native sample rate
+        device_info = sd.query_devices(device_to_use)
+        native_rate = int(device_info['default_samplerate'])
+        device_name = device_info['name']
+        
+        self.console.print(f"[green]✓ Using device: {device_name} @ {native_rate}Hz[/green]")
+        
+        # Calculate frame size for this sample rate
+        frames_per_buffer = int(native_rate * FRAME_DURATION_MS / 1000)
+        self.console.print(f"[blue]Frame size: {frames_per_buffer} samples ({FRAME_DURATION_MS}ms)[/blue]")
+        
+        try:
+            self.stream = sd.InputStream(
+                samplerate=native_rate,
+                channels=1,
+                dtype=np.float32,
+                blocksize=frames_per_buffer,
+                device=device_to_use,
+                callback=self.audio_callback
+            )
+            self.stream.start()
+            self.console.print("[green]✓ Audio stream started successfully![/green]")
+        except Exception as e:
+            self.console.print(f"[red]✗ Failed to start audio stream: {e}[/red]")
+            raise
+        print(f"Started audio capture (device: {device_to_use} - {device_name})")
     
     def stop_capture(self):
         """Stop audio capture."""
