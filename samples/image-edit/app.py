@@ -72,6 +72,8 @@ def pil_from_bytes(b: bytes) -> Image.Image:
 
 class BackgroundRemoverApp:
     def __init__(self, root: tk.Tk):
+        self.bg_path = os.path.join(os.path.dirname(__file__), "assets", "grain.jpeg")
+        self.show_composite = tk.BooleanVar(value=False)
         self.root = root
         self.state = AppState(session_cache={})
         self.root.title("On-Device Background Remover (ONNX Runtime)")
@@ -94,36 +96,45 @@ class BackgroundRemoverApp:
         self.save_btn = tk.Button(top, text="Save PNG", command=self.on_save, state=tk.DISABLED)
         self.save_btn.pack(side=tk.LEFT, padx=8)
 
+
         self.status_var = tk.StringVar(value=get_available_providers_str())
-        self.status = tk.Label(root, textvariable=self.status_var, anchor="w")
+        self.status = tk.Label(self.root, textvariable=self.status_var, anchor="w")
         self.status.pack(fill=tk.X, padx=8)
 
-        # Previews
-        previews = tk.Frame(root)
-        previews.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        # Composite toggle
+        self.composite_btn = tk.Checkbutton(top, text="Show on Background", variable=self.show_composite, command=self.update_output_preview)
+        self.composite_btn.pack(side=tk.LEFT, padx=8)
 
-        left = tk.Frame(previews)
-        left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        tk.Label(left, text="Input").pack(anchor="w")
-        self.in_canvas = tk.Label(left, bd=1, relief=tk.SOLID)
+        # Previews
+        self.previews = tk.Frame(self.root)
+        self.previews.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+
+        self.left = tk.Frame(self.previews)
+        self.left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tk.Label(self.left, text="Input").pack(anchor="w")
+        self.in_canvas = tk.Label(self.left, bd=1, relief=tk.SOLID)
         self.in_canvas.pack(fill=tk.BOTH, expand=True, padx=(0, 4), pady=4)
 
-        right = tk.Frame(previews)
-        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        tk.Label(right, text="Output").pack(anchor="w")
-        self.out_canvas = tk.Label(right, bd=1, relief=tk.SOLID)
+        self.right = tk.Frame(self.previews)
+        self.right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tk.Label(self.right, text="Output").pack(anchor="w")
+        self.out_canvas = tk.Label(self.right, bd=1, relief=tk.SOLID)
         self.out_canvas.pack(fill=tk.BOTH, expand=True, padx=(4, 0), pady=4)
 
     def on_open(self):
+        print("[INFO] Open Image dialog triggered.")
         path = filedialog.askopenfilename(
             title="Select an image",
             filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp;*.webp"), ("All files", "*.*")]
         )
         if not path:
+            print("[INFO] No image selected.")
             return
         try:
+            print(f"[INFO] Loading image: {path}")
             preview = load_image_for_preview(path)
         except Exception as e:
+            print(f"[ERROR] Failed to open image: {e}")
             messagebox.showerror("Error", f"Failed to open image:\n{e}")
             return
 
@@ -136,39 +147,69 @@ class BackgroundRemoverApp:
         self.run_btn.config(state=tk.NORMAL)
         self.save_btn.config(state=tk.DISABLED)
         self.status_var.set(f"Loaded: {os.path.basename(path)} | {get_available_providers_str()}")
+        print(f"[INFO] Image loaded and preview updated: {os.path.basename(path)}")
 
     def on_run(self):
         if not self.state.input_path:
+            print("[WARN] Run triggered but no input image loaded.")
             return
         self.run_btn.config(state=tk.DISABLED)
         self.save_btn.config(state=tk.DISABLED)
         self.status_var.set("Running on-device inference...")
+        print(f"[INFO] Starting background removal for: {self.state.input_path}")
 
         def work():
+            import time
             try:
+                t0 = time.time()
                 with open(self.state.input_path, "rb") as f:
                     data = f.read()
                 model_name = self.model_var.get()
+                print(f"[INFO] Using model: {model_name}")
+                print("[INFO] Downloading model if needed and running inference...")
                 out_bytes = remove_bg_bytes(data, model_name)
                 out_img = pil_from_bytes(out_bytes)
                 preview = out_img.copy()
                 preview.thumbnail((480, 480), Image.LANCZOS)
+                t1 = time.time()
+                print(f"[INFO] Inference complete in {t1-t0:.2f} seconds.")
                 # Update UI in main thread
                 self.root.after(0, self._finish_run, out_img, preview)
             except Exception as e:
+                print(f"[ERROR] Inference failed: {e}")
                 self.root.after(0, self._error_run, e)
 
         threading.Thread(target=work, daemon=True).start()
 
     def _finish_run(self, out_img: Image.Image, preview: Image.Image):
+        print("[INFO] Background removal finished. Output image ready.")
         self.state.output_image = out_img
         self.state.preview_output = preview
-        self.update_preview(self.out_canvas, preview)
+        self.update_output_preview()
         self.run_btn.config(state=tk.NORMAL)
         self.save_btn.config(state=tk.NORMAL)
         self.status_var.set("Done. You can Save PNG now.")
 
+    def update_output_preview(self):
+        if self.state.preview_output is None:
+            self.update_preview(self.out_canvas, None)
+            return
+        if self.show_composite.get():
+            try:
+                bg = Image.open(self.bg_path).convert("RGBA")
+                fg = self.state.preview_output
+                # Resize bg to match fg
+                bg = bg.resize(fg.size, Image.LANCZOS)
+                composite = Image.alpha_composite(bg, fg)
+                self.update_preview(self.out_canvas, composite)
+            except Exception as e:
+                print(f"[ERROR] Failed to composite background: {e}")
+                self.update_preview(self.out_canvas, self.state.preview_output)
+        else:
+            self.update_preview(self.out_canvas, self.state.preview_output)
+
     def _error_run(self, e: Exception):
+        print(f"[ERROR] {e}")
         self.run_btn.config(state=tk.NORMAL)
         self.save_btn.config(state=tk.DISABLED)
         messagebox.showerror("Error", f"Inference failed:\n{e}")
@@ -176,6 +217,7 @@ class BackgroundRemoverApp:
 
     def on_save(self):
         if self.state.output_image is None:
+            print("[WARN] Save triggered but no output image available.")
             return
         out_path = filedialog.asksaveasfilename(
             title="Save output PNG",
@@ -183,11 +225,14 @@ class BackgroundRemoverApp:
             filetypes=[("PNG", "*.png")]
         )
         if not out_path:
+            print("[INFO] Save dialog cancelled.")
             return
         try:
             self.state.output_image.save(out_path, "PNG")
             self.status_var.set(f"Saved: {os.path.basename(out_path)}")
+            print(f"[INFO] Output image saved: {out_path}")
         except Exception as e:
+            print(f"[ERROR] Failed to save image: {e}")
             messagebox.showerror("Error", f"Failed to save image:\n{e}")
 
     def update_preview(self, widget: tk.Label, pil_img: Optional[Image.Image]):
@@ -227,11 +272,15 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    import time
     args = parse_args()
     if args.input and args.output:
+        print(f"[INFO] CLI mode: input={args.input}, output={args.output}, model={args.model}")
         run_cli(args)
     else:
+        print("[INFO] Starting Background Remover GUI...")
         root = tk.Tk()
         app = BackgroundRemoverApp(root)
+        print("[INFO] GUI window created. Waiting for user action.")
         root.geometry("1000x650")
         root.mainloop()
