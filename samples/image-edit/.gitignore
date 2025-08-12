@@ -1,0 +1,21 @@
+
+# Ignore rembg-specific cache (not in parent)
+rembg_cache/
+
+# Ignore Tkinter window state (if any, not in parent)
+*.tkstate
+
+# Ignore OS-specific files (not in parent)
+.DS_Store
+Thumbs.db
+
+# Ignore output images (if you want to keep outputs untracked)
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.webp
+
+# Ignore user-specific files (not in parent)
+*.swp
+*.swo
