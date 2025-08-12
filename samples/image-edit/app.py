@@ -1,52 +1,63 @@
-import argparse
-import io
-import os
-import sys
-import threading
-from dataclasses import dataclass
-from typing import Optional
 
-# Use rich for all logging
+# --- Standard library imports ---
+import argparse  # For CLI argument parsing
+import io        # For in-memory byte streams
+import os        # For file and path operations
+import sys       # For system exit
+import threading # For running inference in background
+from dataclasses import dataclass  # For simple state containers
+from typing import Optional       # For type hints
+
+
+# --- Third-party imports ---
+# Use rich for all logging (colorful, formatted output)
 from rich import print as rich_print
 from rich.panel import Panel
 from rich.console import Console
 
+
+# Image handling (Pillow)
 from PIL import Image, ImageTk
 
-# rembg handles ONNX Runtime and model downloads internally
+
+# rembg: wraps ONNX Runtime and manages model downloads
 from rembg import remove, new_session
+
 
 # Try to import onnxruntime to display provider info (CPU vs GPU DirectML)
 try:
     import onnxruntime as ort
 except Exception:
-    ort = None
+    ort = None  # If not available, rembg will manage providers
 
-# Simple Tkinter GUI
+
+# --- GUI imports (Tkinter) ---
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+
+# --- Model options ---
 SUPPORTED_MODELS = [
-    # Small and fast (good for labs)
-    "u2netp",
-    # Mid/large (better quality)
-    "u2net",
-    # High quality general model (larger download)
-    "isnet-general-use",
+    "u2netp",           # Small and fast (good for labs)
+    "u2net",            # Mid/large (better quality)
+    "isnet-general-use" # High quality general model (larger download)
 ]
+DEFAULT_MODEL = "u2netp"  # Default model for speed
 
-DEFAULT_MODEL = "u2netp"
 
 
+# --- Application state container ---
 @dataclass
 class AppState:
-    input_path: Optional[str] = None
-    output_image: Optional[Image.Image] = None
-    preview_input: Optional[Image.Image] = None
-    preview_output: Optional[Image.Image] = None
-    session_cache: dict = None
+    input_path: Optional[str] = None         # Path to input image
+    output_image: Optional[Image.Image] = None  # Final output image (with background removed)
+    preview_input: Optional[Image.Image] = None # Preview of input image
+    preview_output: Optional[Image.Image] = None# Preview of output image
+    session_cache: dict = None                  # (Optional) cache for model sessions
 
 
+
+# Helper: Show which ONNX Runtime providers are available (for status bar)
 def get_available_providers_str() -> str:
     if ort is None:
         return "ONNX Runtime not detected (rembg will manage)."
@@ -59,31 +70,39 @@ def get_available_providers_str() -> str:
         return f"Providers: unknown ({e})"
 
 
+
+# Helper: Load and resize image for preview in the UI
 def load_image_for_preview(path: str, max_size=(480, 480)) -> Image.Image:
     img = Image.open(path).convert("RGBA")
     img.thumbnail(max_size, Image.LANCZOS)
     return img
 
 
+
+# Helper: Remove background from image bytes using selected model
 def remove_bg_bytes(input_bytes: bytes, model_name: str) -> bytes:
-    # new_session caches internally; we also cache per-model in our app state
-    session = new_session(model_name)
+    session = new_session(model_name)  # rembg caches sessions internally
     return remove(input_bytes, session=session)
 
 
+
+# Helper: Convert bytes to PIL Image
 def pil_from_bytes(b: bytes) -> Image.Image:
     return Image.open(io.BytesIO(b)).convert("RGBA")
 
 
+
+# --- Main Application Class: Handles all UI and logic ---
 class BackgroundRemoverApp:
     def __init__(self, root: tk.Tk):
+        # Path to background image for composite preview
         self.bg_path = os.path.join(os.path.dirname(__file__), "assets", "grain.jpeg")
-        self.show_composite = tk.BooleanVar(value=False)
+        self.show_composite = tk.BooleanVar(value=False)  # Toggle for showing composite
         self.root = root
-        self.state = AppState(session_cache={})
+        self.state = AppState(session_cache={})           # Holds all app state
         self.root.title("On-Device Background Remover (ONNX Runtime)")
 
-        # Detect GPU availability
+        # --- Hardware detection: Check if GPU (DirectML) is available ---
         self.gpu_available = False
         self.gpu_provider_name = "DmlExecutionProvider"
         self.providers = []
@@ -95,7 +114,7 @@ class BackgroundRemoverApp:
             except Exception:
                 pass
 
-        # Top bar: buttons and model selector
+        # --- Top bar: File open, model selection, GPU toggle, run/save buttons ---
         top = tk.Frame(root)
         top.pack(fill=tk.X, padx=8, pady=8)
 
@@ -107,7 +126,7 @@ class BackgroundRemoverApp:
         self.model_menu = tk.OptionMenu(top, self.model_var, *SUPPORTED_MODELS)
         self.model_menu.pack(side=tk.LEFT, padx=8)
 
-        # GPU checkbox
+        # GPU checkbox: enabled if GPU available, otherwise disabled
         self.use_gpu = tk.BooleanVar()
         if self.gpu_available:
             self.use_gpu.set(True)
@@ -124,15 +143,16 @@ class BackgroundRemoverApp:
         self.save_btn = tk.Button(top, text="Save PNG", command=self.on_save, state=tk.DISABLED)
         self.save_btn.pack(side=tk.LEFT, padx=8)
 
+        # Status bar: shows which providers are active (CPU/GPU)
         self.status_var = tk.StringVar(value=get_available_providers_str())
         self.status = tk.Label(self.root, textvariable=self.status_var, anchor="w")
         self.status.pack(fill=tk.X, padx=8)
 
-        # Composite toggle
+        # Composite toggle: show output on background
         self.composite_btn = tk.Checkbutton(top, text="Show on Background", variable=self.show_composite, command=self.update_output_preview)
         self.composite_btn.pack(side=tk.LEFT, padx=8)
 
-        # Previews
+        # --- Image preview panels (input/output) ---
         self.previews = tk.Frame(self.root)
         self.previews.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
 
@@ -148,6 +168,7 @@ class BackgroundRemoverApp:
         self.out_canvas = tk.Label(self.right, bd=1, relief=tk.SOLID)
         self.out_canvas.pack(fill=tk.BOTH, expand=True, padx=(4, 0), pady=4)
 
+    # --- File open handler: loads image and updates preview ---
     def on_open(self):
         rich_print("[bold cyan][INFO][/bold cyan] Open Image dialog triggered.")
         path = filedialog.askopenfilename(
@@ -177,6 +198,7 @@ class BackgroundRemoverApp:
         rich_print(f"[bold cyan][INFO][/bold cyan] Image loaded and preview updated: [white]{os.path.basename(path)}[/white]")
 
 
+    # --- Run handler: starts background removal in a thread ---
     def on_run(self):
         if not self.state.input_path:
             rich_print("[bold yellow][WARN][/bold yellow] Run triggered but no input image loaded.")
@@ -189,6 +211,7 @@ class BackgroundRemoverApp:
         use_gpu = self.use_gpu.get() if self.gpu_available else False
         rich_print(f"[bold cyan][INFO][/bold cyan] Use GPU: {use_gpu}")
 
+        # Run inference in a background thread to keep UI responsive
         def work():
             import time
             try:
@@ -221,6 +244,7 @@ class BackgroundRemoverApp:
 
         threading.Thread(target=work, daemon=True).start()
 
+    # --- Called when inference finishes: updates UI and logs stats ---
     def _finish_run(self, out_img: Image.Image, preview: Image.Image):
         rich_print("[bold green][INFO][/bold green] Background removal finished. Output image ready.")
         self.state.output_image = out_img
@@ -283,6 +307,7 @@ class BackgroundRemoverApp:
         except Exception as e:
             rich_print(f"[yellow][WARN][/yellow] Could not print rich log: {e}")
 
+    # --- Updates the output preview (with/without background composite) ---
     def update_output_preview(self):
         if self.state.preview_output is None:
             self.update_preview(self.out_canvas, None)
@@ -301,6 +326,7 @@ class BackgroundRemoverApp:
         else:
             self.update_preview(self.out_canvas, self.state.preview_output)
 
+    # --- Called on inference error: shows error dialog and updates status ---
     def _error_run(self, e: Exception):
         rich_print(f"[bold red][ERROR][/bold red] {e}")
         self.run_btn.config(state=tk.NORMAL)
@@ -308,6 +334,7 @@ class BackgroundRemoverApp:
         messagebox.showerror("Error", f"Inference failed:\n{e}")
         self.status_var.set(f"Error: {e}")
 
+    # --- Save handler: lets user save the output PNG ---
     def on_save(self):
         if self.state.output_image is None:
             rich_print("[bold yellow][WARN][/bold yellow] Save triggered but no output image available.")
@@ -328,6 +355,7 @@ class BackgroundRemoverApp:
             rich_print(f"[bold red][ERROR][/bold red] Failed to save image: {e}")
             messagebox.showerror("Error", f"Failed to save image:\n{e}")
 
+    # --- Helper: update a Tkinter label with a PIL image ---
     def update_preview(self, widget: tk.Label, pil_img: Optional[Image.Image]):
         if pil_img is None:
             widget.config(image="", text="(no image)")
@@ -338,8 +366,9 @@ class BackgroundRemoverApp:
         widget.image = tk_img  # keep ref
 
 
+
+# --- CLI mode: allows background removal from command line ---
 def run_cli(args: argparse.Namespace):
-    # CLI mode for headless usage
     if not args.input or not args.output:
         rich_print("[bold red][ERROR][/bold red] CLI mode requires --input and --output")
         sys.exit(2)
@@ -356,6 +385,8 @@ def run_cli(args: argparse.Namespace):
         sys.exit(1)
 
 
+
+# --- Argument parser: supports both GUI and CLI usage ---
 def parse_args():
     p = argparse.ArgumentParser(description="On-Device Background Remover (GUI + CLI)")
     p.add_argument("--input", type=str, help="Input image path (CLI mode)")
@@ -364,13 +395,17 @@ def parse_args():
     return p.parse_args()
 
 
+
+# --- Main entry point: runs GUI or CLI depending on arguments ---
 if __name__ == "__main__":
     import time
     args = parse_args()
     if args.input and args.output:
+        # CLI mode
         rich_print(f"[bold cyan][INFO][/bold cyan] CLI mode: input=[white]{args.input}[/white], output=[white]{args.output}[/white], model=[white]{args.model}[/white]")
         run_cli(args)
     else:
+        # GUI mode
         rich_print("[bold cyan][INFO][/bold cyan] Starting Background Remover GUI...")
         root = tk.Tk()
         app = BackgroundRemoverApp(root)

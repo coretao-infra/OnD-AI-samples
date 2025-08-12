@@ -93,13 +93,9 @@ Uncomment the `$env:REMBG_MODEL_DIR` line in `run.ps1` and set the path to your 
 - We create a session and run inference locally, returning a transparent PNG.
 - ONNX Runtime with DirectML is used, which can leverage your GPU when available or fall back to CPU. The provider selection is controlled by the GUI checkbox.
 
-### Application Architecture
-
-![Application Architecture Diagram](./assets/background-remover-diagram.png)
-
 ### AI Background Removal Process
 
-![AI Background Removal Process](./assets/ai-background-removal-diagram.png)
+![AI Background Removal Process](./assets/c__Users_dvasquez_repos_OnD-AI-samples_samples_image-edit_assets_ai-background-removal-diagram.png)
 
 The diagram above illustrates how the background removal process works:
 1. Input images are processed through the rembg.remove() function
