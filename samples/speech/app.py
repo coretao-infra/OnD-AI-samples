@@ -4,10 +4,12 @@ Windows On-Device AI Lab: Live Captions
 Real-time speech transcription using Whisper models via faster-whisper.
 """
 
+
 import argparse
+import asyncio
 import queue
+import random
 import sys
-import threading
 import time
 from typing import Generator, Optional, Tuple
 
@@ -15,10 +17,7 @@ import numpy as np
 import sounddevice as sd
 import webrtcvad
 from faster_whisper import WhisperModel
-from rich.console import Console
-from rich.live import Live
-from rich.panel import Panel
-from rich.text import Text
+from utils.ui import XTreeUI
 
 # --- Constants ---
 SAMPLE_RATE = 16000  # Whisper models expect 16kHz
@@ -38,8 +37,6 @@ class AudioCapture:
         self.audio_queue = queue.Queue(maxsize=AUDIO_QUEUE_SIZE)
         self.is_recording = False
         self.stream = None
-        self.console = Console()
-        
         # VAD state
         self.current_utterance = []
         self.silent_frames = 0
@@ -48,7 +45,7 @@ class AudioCapture:
     def audio_callback(self, indata, frames, time, status):
         """Called by sounddevice for each audio frame."""
         if status:
-            self.console.print(f"[yellow]Audio callback status: {status}[/yellow]")
+            print(f"Audio callback status: {status}")
         
         # Convert to int16 for VAD and queue for processing
         audio_int16 = (indata[:, 0] * 32767).astype(np.int16)
@@ -61,19 +58,19 @@ class AudioCapture:
             
         if self._callback_count % 50 == 0:  # Every ~1.5 seconds at 30ms frames
             max_amplitude = np.max(np.abs(audio_int16))
-            self.console.print(f"[dim]Audio level: {max_amplitude} (frames processed: {self._callback_count})[/dim]")
+            print(f"Audio level: {max_amplitude} (frames processed: {self._callback_count})")
         
         try:
             self.audio_queue.put_nowait(audio_int16)
         except queue.Full:
-            self.console.print("[red]Warning: Audio queue full, dropping frame[/red]")
+            print("Warning: Audio queue full, dropping frame")
             pass
     
     def start_capture(self):
         """Start audio capture."""
-        self.console.print("[blue]🎙️ Starting audio capture...[/blue]")
+        print("🎙️ Starting audio capture...")
         self.is_recording = True
-        
+
         # Use specified device or system default input device
         device_to_use = self.device_index
         if device_to_use is None:
@@ -81,26 +78,29 @@ class AudioCapture:
             try:
                 device_to_use = sd.default.device[0]  # [0] is input, [1] is output
                 if device_to_use == -1:
+                    print("ERROR: No default input device configured.")
+                    print("Please run with --list-devices to see available devices")
+                    print("Then select a specific device with --mic-index NUMBER")
                     raise ValueError("No default input device configured")
-                self.console.print(f"[green]Using system default input device: {device_to_use}[/green]")
+                print(f"Using system default input device: {device_to_use}")
             except Exception as e:
-                self.console.print(f"[red]Could not get default input device: {e}[/red]")
+                print(f"ERROR: Could not get default input device: {e}")
+                print("Please run with --list-devices to see available devices")
+                print("Then select a specific device with --mic-index NUMBER")
                 raise RuntimeError("No default input device available")
-        
+
         # Get device info for display
         device_info = sd.query_devices(device_to_use)
         device_name = device_info['name']
-        
+
         # Force 16kHz for Whisper and VAD compatibility
         target_rate = SAMPLE_RATE  # Always use 16kHz
-        
-        self.console.print(f"[green]✓ Using device: {device_name}[/green]")
-        self.console.print(f"[blue]Recording at 16kHz (Whisper/VAD compatible)[/blue]")
-        
+
+        print(f"✓ Using device: {device_name}")
+        print(f"Recording at 16kHz (Whisper/VAD compatible)")
         # Calculate frame size for 16kHz
         frames_per_buffer = int(target_rate * FRAME_DURATION_MS / 1000)
-        self.console.print(f"[blue]Frame size: {frames_per_buffer} samples ({FRAME_DURATION_MS}ms)[/blue]")
-        
+        print(f"Frame size: {frames_per_buffer} samples ({FRAME_DURATION_MS}ms)")
         try:
             self.stream = sd.InputStream(
                 samplerate=target_rate,  # Force 16kHz
@@ -111,9 +111,9 @@ class AudioCapture:
                 callback=self.audio_callback
             )
             self.stream.start()
-            self.console.print("[green]✓ Audio stream started successfully![/green]")
+            print("✓ Audio stream started successfully!")
         except Exception as e:
-            self.console.print(f"[red]✗ Failed to start audio stream: {e}[/red]")
+            print(f"✗ Failed to start audio stream: {e}")
             raise
         print(f"Started audio capture (device: {device_to_use} - {device_name})")
     
@@ -170,116 +170,89 @@ class AudioCapture:
                 break
 
 
+
 class LiveCaptionsApp:
-    """Main application for live speech captioning."""
-    
+    """Main application for live speech captioning with async XTreeUI."""
     def __init__(self, model_size: str = "tiny", language: Optional[str] = None, 
                  device: str = "cpu", compute_type: str = "int8", 
                  mic_index: Optional[int] = None, use_vad: bool = True):
-        self.console = Console()
         self.model_size = model_size
         self.language = language
         self.device = device
         self.compute_type = compute_type
         self.use_vad = use_vad
-        
-        # Initialize Whisper model
-        self.console.print(f"[cyan]Loading Whisper model ({model_size})...[/cyan]")
         self.model = WhisperModel(
             model_size, 
             device=device, 
             compute_type=compute_type
         )
-        self.console.print("[green]✓ Model loaded[/green]")
-        
-        # Initialize audio capture
         self.audio_capture = AudioCapture(mic_index, use_vad)
-        
-        # State
         self.running = False
-        self.current_text = ""
         self.transcript_history = []
-    
+        self.ui = XTreeUI(refresh_per_second=10, height=24)
+
     def transcribe_audio(self, audio: np.ndarray) -> str:
-        """Transcribe audio using Whisper."""
         try:
             segments, info = self.model.transcribe(
                 audio,
                 language=self.language,
-                beam_size=1,  # Faster
+                beam_size=1,
                 word_timestamps=False
             )
-            
-            # Combine all segments
             text = " ".join(segment.text.strip() for segment in segments)
             return text.strip()
         except Exception as e:
-            self.console.print(f"[red]Transcription error: {e}[/red]")
             return ""
-    
-    def update_display(self, text: str, is_final: bool = False):
-        """Update the display with new text."""
-        if is_final and text:
-            self.transcript_history.append(text)
-            # Keep only last 10 lines
-            if len(self.transcript_history) > 10:
-                self.transcript_history.pop(0)
-        
-        # Create display content
-        history_text = "\n".join(self.transcript_history)
-        current_display = f"{history_text}\n[dim]{text}[/dim]" if not is_final else history_text
-        
-        return Panel(
-            current_display or "[dim]Listening for speech...[/dim]",
-            title="[bold blue]Live Captions[/bold blue]",
-            border_style="blue"
-        )
-    
-    def run_console(self):
-        """Run the app with console output."""
-        self.console.print("[yellow]Starting Live Captions (Press Ctrl+C to stop)...[/yellow]")
-        self.console.print(f"Model: {self.model_size} | Device: {self.device} | VAD: {'ON' if self.use_vad else 'OFF'}")
-        
+
+    async def run(self):
         self.running = True
         self.audio_capture.start_capture()
-        
-        self.console.print("\n[green]🎙️ Listening for speech...[/green]")
-        self.console.print("[dim]Transcriptions will appear below:[/dim]")
-        print()  # Empty line for spacing
-        
-        try:
-            for utterance in self.audio_capture.get_utterances():
-                if not self.running:
-                    break
-                
-                # Show processing indicator
-                print("🔄 Processing...", end="", flush=True)
-                
-                # Transcribe
-                text = self.transcribe_audio(utterance)
-                
-                # Clear the processing line and show result
-                print("\r", end="")  # Clear line
-                if text:
-                    print(f"💬 {text}")
-                else:
-                    print("🔇 [No speech detected]")
-                        
-        except KeyboardInterrupt:
-            self.console.print("\n[yellow]Stopping...[/yellow]")
-        finally:
-            self.running = False
-            self.audio_capture.stop_capture()
+
+        async def update_ui_loop():
+            while self.running:
+                # Simulate VU meter with random values (replace with real audio levels if available)
+                # For real VU, you would analyze the most recent audio frame
+                self.ui.update_vu([random.random(), random.random()])
+                await asyncio.sleep(0.1)
+
+        async def process_audio_loop():
+            try:
+                for utterance in self.audio_capture.get_utterances():
+                    if not self.running:
+                        break
+                    self.ui.set_live_audio("Processing...")
+                    text = self.transcribe_audio(utterance)
+                    self.ui.set_live_audio("")
+                    if text:
+                        self.ui.add_transcription(text)
+                    else:
+                        self.ui.add_transcription("[No speech detected]")
+            except Exception:
+                pass
+            finally:
+                self.running = False
+                self.audio_capture.stop_capture()
+                self.ui.stop()
+
+        await asyncio.gather(self.ui.run(), update_ui_loop(), process_audio_loop())
 
 
 def list_audio_devices():
     """List available audio input devices."""
-    console = Console()
-    console.print("[cyan]Available audio devices:[/cyan]")
+    print("Available audio input devices:")
     devices = sd.query_devices()
+    found = False
     for i, device in enumerate(devices):
         if device['max_input_channels'] > 0:
-            console.print(f"  {i}: {device['name']} (inputs: {device['max_input_channels']})")
+            print(f"  {i}: {device['name']} (inputs: {device['max_input_channels']})")
+            found = True
+    
+    if not found:
+        print("  No audio input devices found!")
+    
+    print("\nTo use a specific device:")
+    print("  python app.py --mic-index NUMBER")
+
 
 
 def main():
@@ -294,14 +267,13 @@ def main():
     parser.add_argument("--mic-index", type=int, help="Microphone device index")
     parser.add_argument("--no-vad", action="store_true", help="Disable voice activity detection")
     parser.add_argument("--list-devices", action="store_true", help="List audio devices and exit")
-    
+
     args = parser.parse_args()
-    
+
     if args.list_devices:
         list_audio_devices()
         return
-    
-    # Create and run app
+
     app = LiveCaptionsApp(
         model_size=args.model_size,
         language=args.language,
@@ -310,8 +282,8 @@ def main():
         mic_index=args.mic_index,
         use_vad=not args.no_vad
     )
-    
-    app.run_console()
+
+    asyncio.run(app.run())
 
 
 if __name__ == "__main__":
