@@ -9,12 +9,28 @@ rembg_cache/
 .DS_Store
 Thumbs.db
 
-# Ignore output images (if you want to keep outputs untracked)
-*.png
-*.jpg
-*.jpeg
-*.bmp
-*.webp
+
+# Ignore output images only in output/ folder (customize as needed)
+output/
+output/*.png
+output/*.jpg
+output/*.jpeg
+output/*.bmp
+output/*.webp
+
+# Allow images in assets/ and docs/
+!assets/
+!assets/*.png
+!assets/*.jpg
+!assets/*.jpeg
+!assets/*.bmp
+!assets/*.webp
+!docs/
+!docs/*.png
+!docs/*.jpg
+!docs/*.jpeg
+!docs/*.bmp
+!docs/*.webp
 
 # Ignore user-specific files (not in parent)
 *.swp
