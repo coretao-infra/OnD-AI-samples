@@ -1,6 +1,6 @@
-# Windows On-Device AI Lab: Background Remover (Python + ONNX Runtime)
+# Windows On-Device AI Lab: Background Remover (Python + ONNX Runtime)## Troubleshooting
 
-This lab builds a small Windows desktop app that removes image backgrounds entirely on-device using ONNX Runtime (via the `rembg` library). After the first model download, it runs offline.
+- If you want GPU acceleration but don't see it detected, ensure you have a DX12-capable GPU with up-to-date drivers. The app shows the active providers (CPU/GPU) in the status bar.his lab builds a small Windows desktop app that removes image backgrounds entirely on-device using ONNX Runtime (via the `rembg` library). After the first model download, it runs offline.
 
 Why this is a good lab:
 - Useful output: quickly create transparent PNGs of product shots, profile pics, etc.
@@ -22,12 +22,9 @@ python -m venv .venv
 
 # 2) Install dependencies
 pip install -r requirements.txt
-
-# (Optional) Use GPU via DirectML. If you want GPU acceleration:
-# Uninstall CPU runtime and install DirectML build (you can switch back anytime).
-pip uninstall -y onnxruntime
-pip install onnxruntime-directml
 ```
+
+The requirements now include the DirectML-enabled ONNX Runtime by default, which provides both GPU acceleration and CPU fallback.
 
 Notes:
 - `rembg` will download the model on first run to your user cache. Default here is `u2netp` (small, quick). For higher quality later, switch to `isnet-general-use` in the UI dropdown.
@@ -35,19 +32,41 @@ Notes:
 
 ## Run
 
+### Recommended: PowerShell script
+
 ```powershell
-python app.py
+.\run.ps1
 ```
 
-- Click "Open Image" to load a file (JPG/PNG).
-- Choose a model (start with `u2netp` for speed).
-- Click "Remove Background".
-- Click "Save PNG" to export with transparency.
+This script will:
+- Activate the virtual environment
+- (Optionally) set a custom model directory (uncomment in script)
+- (Optionally) enable GPU mode with `-gpu`
+- Run the app in GUI or CLI mode
 
-CLI mode (no GUI):
+**GUI mode:**
 ```powershell
-python app.py --input path\to\image.jpg --output path\to\out.png --model u2netp
+.\run.ps1
 ```
+Then:
+- Click "Open Image" to load a file (JPG/PNG)
+- Choose a model (start with `u2netp` for speed)
+- Click "Remove Background"
+- Click "Save PNG" to export with transparency
+
+**CLI mode:**
+```powershell
+.\run.ps1 -infile path\to\image.jpg -outfile path\to\out.png -model u2netp
+```
+
+**Enable GPU (DirectML):**
+```powershell
+.\run.ps1 -gpu
+```
+The `-gpu` parameter now only affects which providers the application tries to use - DirectML will be attempted first when this flag is specified.
+
+**Set a custom model directory:**
+Uncomment the `$env:REMBG_MODEL_DIR` line in `run.ps1` and set the path to your models folder.
 
 ## Troubleshooting
 
@@ -59,7 +78,7 @@ python app.py --input path\to\image.jpg --output path\to\out.png --model u2netp
 
 - The app uses `rembg` which wraps ONNX Runtime models for person/object segmentation (e.g., U^2-Net family, IS-Net).
 - We create a session and run inference locally, returning a transparent PNG.
-- ONNX Runtime CPU is used by default; if the DirectML build is installed, it can leverage your GPU.
+- ONNX Runtime with DirectML is used, which can leverage your GPU when available or fall back to CPU.
 
 ## Try better quality
 

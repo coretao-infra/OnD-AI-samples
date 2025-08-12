@@ -1,4 +1,4 @@
 rembg
 pillow
-onnxruntime
+onnxruntime-directml
 rich

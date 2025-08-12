@@ -83,6 +83,18 @@ class BackgroundRemoverApp:
         self.state = AppState(session_cache={})
         self.root.title("On-Device Background Remover (ONNX Runtime)")
 
+        # Detect GPU availability
+        self.gpu_available = False
+        self.gpu_provider_name = "DmlExecutionProvider"
+        self.providers = []
+        if ort is not None:
+            try:
+                self.providers = ort.get_available_providers()
+                if self.gpu_provider_name in self.providers:
+                    self.gpu_available = True
+            except Exception:
+                pass
+
         # Top bar: buttons and model selector
         top = tk.Frame(root)
         top.pack(fill=tk.X, padx=8, pady=8)
@@ -95,12 +107,22 @@ class BackgroundRemoverApp:
         self.model_menu = tk.OptionMenu(top, self.model_var, *SUPPORTED_MODELS)
         self.model_menu.pack(side=tk.LEFT, padx=8)
 
+        # GPU checkbox
+        self.use_gpu = tk.BooleanVar()
+        if self.gpu_available:
+            self.use_gpu.set(True)
+            gpu_state = tk.NORMAL
+        else:
+            self.use_gpu.set(False)
+            gpu_state = tk.DISABLED
+        self.gpu_checkbox = tk.Checkbutton(top, text="Use GPU (DirectML)", variable=self.use_gpu, state=gpu_state)
+        self.gpu_checkbox.pack(side=tk.LEFT, padx=8)
+
         self.run_btn = tk.Button(top, text="Remove Background", command=self.on_run, state=tk.DISABLED)
         self.run_btn.pack(side=tk.LEFT, padx=8)
 
         self.save_btn = tk.Button(top, text="Save PNG", command=self.on_save, state=tk.DISABLED)
         self.save_btn.pack(side=tk.LEFT, padx=8)
-
 
         self.status_var = tk.StringVar(value=get_available_providers_str())
         self.status = tk.Label(self.root, textvariable=self.status_var, anchor="w")
@@ -154,6 +176,7 @@ class BackgroundRemoverApp:
         self.status_var.set(f"Loaded: {os.path.basename(path)} | {get_available_providers_str()}")
         rich_print(f"[bold cyan][INFO][/bold cyan] Image loaded and preview updated: [white]{os.path.basename(path)}[/white]")
 
+
     def on_run(self):
         if not self.state.input_path:
             rich_print("[bold yellow][WARN][/bold yellow] Run triggered but no input image loaded.")
@@ -162,6 +185,9 @@ class BackgroundRemoverApp:
         self.save_btn.config(state=tk.DISABLED)
         self.status_var.set("Running on-device inference...")
         rich_print(f"[bold cyan][INFO][/bold cyan] Starting background removal for: [white]{self.state.input_path}[/white]")
+
+        use_gpu = self.use_gpu.get() if self.gpu_available else False
+        rich_print(f"[bold cyan][INFO][/bold cyan] Use GPU: {use_gpu}")
 
         def work():
             import time
@@ -172,7 +198,16 @@ class BackgroundRemoverApp:
                 model_name = self.model_var.get()
                 rich_print(f"[bold cyan][INFO][/bold cyan] Using model: [white]{model_name}[/white]")
                 rich_print("[bold cyan][INFO][/bold cyan] Downloading model if needed and running inference...")
-                out_bytes = remove_bg_bytes(data, model_name)
+                # Choose providers based on checkbox
+                providers = None
+                if ort is not None:
+                    if use_gpu:
+                        providers = [self.gpu_provider_name, "CPUExecutionProvider"]
+                    else:
+                        providers = ["CPUExecutionProvider"]
+                # Patch remove_bg_bytes to accept providers
+                session = new_session(model_name, providers=providers) if providers else new_session(model_name)
+                out_bytes = remove(data, session=session)
                 out_img = pil_from_bytes(out_bytes)
                 preview = out_img.copy()
                 preview.thumbnail((480, 480), Image.LANCZOS)
