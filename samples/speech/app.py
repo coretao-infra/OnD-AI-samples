@@ -84,34 +84,26 @@ class AudioCapture:
                     raise ValueError("No default input device configured")
                 self.console.print(f"[green]Using system default input device: {device_to_use}[/green]")
             except Exception as e:
-                self.console.print(f"[yellow]Could not get default input device ({e}), searching manually...[/yellow]")
-                # Fallback: find first real microphone device (skip Stereo Mix and PC Speaker)
-                devices = sd.query_devices()
-                for i, device in enumerate(devices):
-                    if (device['max_input_channels'] > 0 and 
-                        'microphone' in device['name'].lower() and 
-                        'stereo mix' not in device['name'].lower() and
-                        'pc speaker' not in device['name'].lower()):
-                        device_to_use = i
-                        self.console.print(f"[green]Found microphone device {i}: {device['name']}[/green]")
-                        break
-                if device_to_use is None:
-                    raise RuntimeError("No suitable input devices found")
+                self.console.print(f"[red]Could not get default input device: {e}[/red]")
+                raise RuntimeError("No default input device available")
         
-        # Get device info and use its native sample rate
+        # Get device info for display
         device_info = sd.query_devices(device_to_use)
-        native_rate = int(device_info['default_samplerate'])
         device_name = device_info['name']
         
-        self.console.print(f"[green]✓ Using device: {device_name} @ {native_rate}Hz[/green]")
+        # Force 16kHz for Whisper and VAD compatibility
+        target_rate = SAMPLE_RATE  # Always use 16kHz
         
-        # Calculate frame size for this sample rate
-        frames_per_buffer = int(native_rate * FRAME_DURATION_MS / 1000)
+        self.console.print(f"[green]✓ Using device: {device_name}[/green]")
+        self.console.print(f"[blue]Recording at 16kHz (Whisper/VAD compatible)[/blue]")
+        
+        # Calculate frame size for 16kHz
+        frames_per_buffer = int(target_rate * FRAME_DURATION_MS / 1000)
         self.console.print(f"[blue]Frame size: {frames_per_buffer} samples ({FRAME_DURATION_MS}ms)[/blue]")
         
         try:
             self.stream = sd.InputStream(
-                samplerate=native_rate,
+                samplerate=target_rate,  # Force 16kHz
                 channels=1,
                 dtype=np.float32,
                 blocksize=frames_per_buffer,
@@ -251,24 +243,27 @@ class LiveCaptionsApp:
         self.running = True
         self.audio_capture.start_capture()
         
+        self.console.print("\n[green]🎙️ Listening for speech...[/green]")
+        self.console.print("[dim]Transcriptions will appear below:[/dim]")
+        print()  # Empty line for spacing
+        
         try:
-            with Live(self.update_display(""), console=self.console, refresh_per_second=4) as live:
-                for utterance in self.audio_capture.get_utterances():
-                    if not self.running:
-                        break
-                    
-                    # Show processing indicator
-                    live.update(self.update_display("[yellow]Processing...[/yellow]"))
-                    
-                    # Transcribe
-                    text = self.transcribe_audio(utterance)
-                    
-                    if text:
-                        # Update with final result
-                        live.update(self.update_display(text, is_final=True))
-                    else:
-                        # Clear processing indicator
-                        live.update(self.update_display(""))
+            for utterance in self.audio_capture.get_utterances():
+                if not self.running:
+                    break
+                
+                # Show processing indicator
+                print("🔄 Processing...", end="", flush=True)
+                
+                # Transcribe
+                text = self.transcribe_audio(utterance)
+                
+                # Clear the processing line and show result
+                print("\r", end="")  # Clear line
+                if text:
+                    print(f"💬 {text}")
+                else:
+                    print("🔇 [No speech detected]")
                         
         except KeyboardInterrupt:
             self.console.print("\n[yellow]Stopping...[/yellow]")
