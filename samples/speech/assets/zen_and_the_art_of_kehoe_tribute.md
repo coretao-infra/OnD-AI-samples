@@ -1,6 +1,6 @@
 
 # Getting Started on the Internet — Summer Nineteen-Ninety-Two
-## This is a fictional tribute to the original "Zen and the Art of the Internet" by late Brendan P. Kehoe, reimagined for demonstration purposes.
+## This is a fictional tribute to the original 1992 "Zen and the Art of the Internet" by late Brendan P. Kehoe, reimagined for demonstration purposes.
 
 –––––––––––––––––––––––––––––––––
 

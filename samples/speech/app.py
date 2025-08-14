@@ -1,404 +1,142 @@
 #!/usr/bin/env python3
 """
-Windows On-Device AI Lab: Live Captions
+Windows On-Device AI Lab: Live Captions (Simplified Demo Version)
 Real-time speech transcription using OpenAI Whisper models.
-"""
 
+This simplified version demonstrates clean separation of concerns:
+- AudioProcessor: Handles all audio capture, VAD, and processing coordination  
+- WhisperTranscriber: Handles all transcription concerns
+- EnhancedXTreeUI: Handles all UI concerns
+- LiveCaptionsApp: Simple orchestration only
+"""
 
 import argparse
 import asyncio
-import queue
-import random
-import sys
-import time
-from typing import Generator, Optional, Tuple
-
-import numpy as np
+from typing import Optional
 import sounddevice as sd
-import webrtcvad
 from utils.enhanced_ui import EnhancedXTreeUI
-from utils.logger import logger
 from utils.transcribe import WhisperTranscriber
-
-# --- Constants ---
-SAMPLE_RATE = 16000  # Whisper models expect 16kHz
-FRAME_DURATION_MS = 30  # WebRTC VAD frame duration
-FRAMES_PER_BUFFER = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)  # 480 samples
-SILENCE_THRESHOLD = 20  # Number of silent frames to end utterance
-AUDIO_QUEUE_SIZE = 500  # Increased to handle transcription delays (~15 seconds buffer)
-
-
-class AudioCapture:
-    """Handles microphone audio capture and VAD processing."""
-    
-    def __init__(self, device_index: Optional[int] = None, use_vad: bool = True):
-        self.device_index = device_index
-        self.use_vad = use_vad
-        self.vad = webrtcvad.Vad(2) if use_vad else None  # Aggressiveness level 2
-        self.audio_queue = queue.Queue(maxsize=AUDIO_QUEUE_SIZE)
-        self.is_recording = False
-        self.stream = None
-        # VAD state
-        self.current_utterance = []
-        self.silent_frames = 0
-        self.in_speech = False
-        # VU meter data (separate from processing queue)
-        self.vu_buffer = np.zeros(FRAMES_PER_BUFFER * 5)  # Last 5 frames for VU
-        self.vu_write_pos = 0
-    
-    def audio_callback(self, indata, frames, time, status):
-        """Called by sounddevice for each audio frame."""
-        if status:
-            logger.warning(f"Audio callback status: {status}")
-        
-        # Convert to int16 for VAD and queue for processing
-        audio_int16 = (indata[:, 0] * 32767).astype(np.int16)
-        
-        # Update VU buffer (separate from processing queue)
-        frame_size = len(audio_int16)
-        if self.vu_write_pos + frame_size > len(self.vu_buffer):
-            self.vu_write_pos = 0  # Wrap around
-        self.vu_buffer[self.vu_write_pos:self.vu_write_pos + frame_size] = audio_int16
-        self.vu_write_pos += frame_size
-        
-        # Log audio levels periodically
-        if hasattr(self, '_callback_count'):
-            self._callback_count += 1
-        else:
-            self._callback_count = 1
-            
-        if self._callback_count % 50 == 0:  # Every ~1.5 seconds at 30ms frames
-            max_amplitude = np.max(np.abs(audio_int16))
-            logger.info(f"Audio level: {max_amplitude} (frames processed: {self._callback_count})")
-        
-        try:
-            self.audio_queue.put_nowait(audio_int16)
-        except queue.Full:
-            logger.warning("Warning: Audio queue full, dropping frame")
-            pass
-    
-    def start_capture(self):
-        """Start audio capture."""
-        logger.info("🎙️ Starting audio capture...")
-        self.is_recording = True
-
-        # Use specified device or system default input device
-        device_to_use = self.device_index
-        if device_to_use is None:
-            # Get the actual default input device from the system
-            try:
-                device_to_use = sd.default.device[0]  # [0] is input, [1] is output
-                if device_to_use == -1:
-                    logger.error("ERROR: No default input device configured.")
-                    logger.error("Please run with --list-devices to see available devices")
-                    logger.error("Then select a specific device with --mic-index NUMBER")
-                    raise ValueError("No default input device configured")
-                logger.info(f"Using system default input device: {device_to_use}")
-            except Exception as e:
-                logger.error(f"ERROR: Could not get default input device: {e}")
-                logger.error("Please run with --list-devices to see available devices")
-                logger.error("Then select a specific device with --mic-index NUMBER")
-                raise RuntimeError("No default input device available")
-
-        # Get device info for display
-        device_info = sd.query_devices(device_to_use)
-        device_name = device_info['name']
-
-        # Force 16kHz for Whisper and VAD compatibility
-        target_rate = SAMPLE_RATE  # Always use 16kHz
-
-        logger.info(f"✓ Using device: {device_name}")
-        logger.info(f"Recording at 16kHz (Whisper/VAD compatible)")
-        # Calculate frame size for 16kHz
-        frames_per_buffer = int(target_rate * FRAME_DURATION_MS / 1000)
-        logger.info(f"Frame size: {frames_per_buffer} samples ({FRAME_DURATION_MS}ms)")
-        try:
-            self.stream = sd.InputStream(
-                samplerate=target_rate,  # Force 16kHz
-                channels=1,
-                dtype=np.float32,
-                blocksize=frames_per_buffer,
-                device=device_to_use,
-                callback=self.audio_callback
-            )
-            self.stream.start()
-            logger.info("✓ Audio stream started successfully!")
-        except Exception as e:
-            logger.error(f"✗ Failed to start audio stream: {e}")
-            raise
-        logger.info(f"Started audio capture (device: {device_to_use} - {device_name})")
-    
-    def stop_capture(self):
-        """Stop audio capture."""
-        self.is_recording = False
-        if self.stream:
-            self.stream.stop()
-            self.stream.close()
-    logger.info("Stopped audio capture")
-    
-    def get_vu_levels(self):
-        """Get current VU levels from the dedicated VU buffer."""
-        try:
-            # Calculate RMS from the circular VU buffer
-            rms_level = np.sqrt(np.mean((self.vu_buffer.astype(np.float32) / 32767.0) ** 2))
-            # Simulate stereo by adding slight variation
-            left_level = min(1.0, rms_level * 50)
-            right_level = min(1.0, rms_level * 48)
-            return [left_level, right_level]
-        except:
-            return [0.0, 0.0]
-    
-    def get_utterances(self) -> Generator[np.ndarray, None, None]:
-        while self.is_recording:
-            try:
-                # Get audio frame from queue with shorter timeout for better responsiveness
-                audio_frame = self.audio_queue.get(timeout=0.05)
-                
-                if self.use_vad:
-                    # Use VAD to detect speech
-                    is_speech = self.vad.is_speech(audio_frame.tobytes(), SAMPLE_RATE)
-                    
-                    if is_speech:
-                        self.current_utterance.extend(audio_frame)
-                        self.silent_frames = 0
-                        self.in_speech = True
-                    else:
-                        if self.in_speech:
-                            self.silent_frames += 1
-                            self.current_utterance.extend(audio_frame)
-                            
-                            # End utterance after enough silence
-                            if self.silent_frames >= SILENCE_THRESHOLD:
-                                if len(self.current_utterance) > SAMPLE_RATE:  # At least 1 second
-                                    utterance = np.array(self.current_utterance, dtype=np.float32) / 32767.0
-                                    yield utterance
-                                
-                                # Reset for next utterance
-                                self.current_utterance = []
-                                self.silent_frames = 0
-                                self.in_speech = False
-                else:
-                    # No VAD - accumulate audio and yield chunks periodically
-                    self.current_utterance.extend(audio_frame)
-                    if len(self.current_utterance) >= SAMPLE_RATE * 3:  # 3 seconds
-                        utterance = np.array(self.current_utterance, dtype=np.float32) / 32767.0
-                        yield utterance
-                        self.current_utterance = []
-                        
-            except queue.Empty:
-                # No audio available right now, that's OK
-                continue
-            except Exception as e:
-                logger.error(f"Error processing audio: {e}")
-                break
-
+from utils.audio_processor import AudioProcessor
+from utils.logger import logger
+from config import UI_REFRESH_RATE, UI_HEIGHT
 
 
 class LiveCaptionsApp:
-    """Main application for live speech captioning with async XTreeUI."""
+    """
+    Simplified main application - orchestrates components only.
+    
+    This class demonstrates clean separation of concerns:
+    - No audio processing logic (handled by AudioProcessor)
+    - No transcription logic (handled by WhisperTranscriber) 
+    - No complex UI logic (handled by EnhancedXTreeUI)
+    - Just simple coordination between components
+    """
+    
     def __init__(self, model_size: str = "tiny", language: Optional[str] = None, 
-                 device: str = "cpu", compute_type: str = "int8", 
                  mic_index: Optional[int] = None, use_vad: bool = True):
-        self.model_size = model_size
-        self.language = language
-        self.device = device
-        self.compute_type = compute_type
-        self.use_vad = use_vad
-        # Initialize Whisper transcriber
+        
+        # Initialize components - each handles its own concerns
         self.transcriber = WhisperTranscriber(
             model_size=model_size,
             language=language,
-            device=device,
-            compute_type=compute_type
+            device="cpu",
+            compute_type="int8"
         )
-        self.audio_capture = AudioCapture(mic_index, use_vad)
+        
+        self.ui = EnhancedXTreeUI(refresh_per_second=UI_REFRESH_RATE, height=UI_HEIGHT)
+        
+        self.audio_processor = AudioProcessor(
+            transcriber=self.transcriber,
+            mic_index=mic_index,
+            use_vad=use_vad
+        )
+        
+        # Connect components via callbacks
+        self.audio_processor.set_callbacks(
+            status_callback=self.ui.set_live_audio,
+            transcription_callback=self.ui.add_transcription
+        )
+        
         self.running = False
-        self.transcript_history = []
-        self.ui = EnhancedXTreeUI(refresh_per_second=10, height=24)
-
+    
     def start_recording(self):
-        """Start audio recording."""
-        try:
-            self.audio_capture.start_capture()
-            self.ui.start_capture()
-            self.ui.set_live_audio("🎤 Recording started - listening for speech...")
-        except Exception as e:
-            self.ui.set_live_audio(f"❌ Failed to start recording: {str(e)}")
-
+        """Start audio recording - simple delegation."""
+        self.audio_processor.start_recording()
+    
     def stop_recording(self):
-        """Stop audio recording."""
-        self.audio_capture.stop_capture()
-        self.ui.stop_capture()
-        self.ui.set_live_audio("⏸️ Recording stopped")
-
+        """Stop audio recording - simple delegation."""
+        self.audio_processor.stop_recording()
+    
     def toggle_recording(self):
         """Toggle recording state."""
-        if self.audio_capture.is_recording:
+        if self.audio_processor.audio_capture.is_recording:
             self.stop_recording()
         else:
             self.start_recording()
-
-    def transcribe_audio(self, audio: np.ndarray) -> str:
-        """Transcribe audio using the Whisper transcriber."""
-        return self.transcriber.transcribe(audio)
     
     async def run(self):
+        """
+        Main application loop - much simpler now!
+        Just coordinates the three main async tasks.
+        """
         self.running = True
-        # Don't start capture immediately - wait for user to start it
         
-        async def keyboard_handler():
-            """Handle keyboard input for controlling the app."""
-            # Simplified keyboard handling for cross-platform compatibility
-            # In a production app, you'd want to use a proper keyboard library like pynput
-            while self.running:
-                try:
-                    # For now, we'll just handle basic app control
-                    await asyncio.sleep(0.1)
-                    # Note: Real keyboard handling would require additional libraries
-                    # For demo purposes, the user can use Ctrl+C to exit
-                except KeyboardInterrupt:
-                    self.running = False
-                    break
-                except asyncio.CancelledError:
-                    self.running = False
-                    break
-        
-        async def update_ui_loop():
-            while self.running:
-                try:
-                    # Get VU levels from the dedicated VU buffer (no queue interference)
-                    if self.audio_capture.is_recording:
-                        vu_levels = self.audio_capture.get_vu_levels()
-                        self.ui.update_vu(vu_levels)
-                    else:
-                        # Not recording, show silence
-                        self.ui.update_vu([0.0, 0.0])
-                    
-                    await asyncio.sleep(0.1)
-                except asyncio.CancelledError:
-                    self.running = False
-                    break
-
-        async def process_audio_loop():
-            try:
-                while self.running:
-                    try:
-                        if self.audio_capture.is_recording:
-                            # Instead of using the generator, check the queue directly
-                            try:
-                                # Try to get audio data without blocking
-                                if not self.audio_capture.audio_queue.empty():
-                                    audio_frame = self.audio_capture.audio_queue.get_nowait()
-                                    
-                                    # Process the frame (simplified VAD approach)
-                                    if self.audio_capture.use_vad:
-                                        is_speech = self.audio_capture.vad.is_speech(audio_frame.tobytes(), SAMPLE_RATE)
-                                        
-                                        if is_speech:
-                                            self.audio_capture.current_utterance.extend(audio_frame)
-                                            self.audio_capture.silent_frames = 0
-                                            self.audio_capture.in_speech = True
-                                        else:
-                                            if self.audio_capture.in_speech:
-                                                self.audio_capture.silent_frames += 1
-                                                self.audio_capture.current_utterance.extend(audio_frame)
-                                                
-                                                # End utterance after enough silence
-                                                if self.audio_capture.silent_frames >= SILENCE_THRESHOLD:
-                                                    if len(self.audio_capture.current_utterance) > SAMPLE_RATE:
-                                                        utterance = np.array(self.audio_capture.current_utterance, dtype=np.float32) / 32767.0
-                                                        
-                                                        # Process the utterance
-                                                        self.ui.set_live_audio("🎙️ Processing speech...")
-                                                        text = await self.transcriber.transcribe_async(utterance)
-                                                        if text:
-                                                            self.ui.add_transcription(f"[{time.strftime('%H:%M:%S')}] {text}")
-                                                            self.ui.set_live_audio("✓ Speech processed successfully")
-                                                        else:
-                                                            self.ui.set_live_audio("⚠️ No speech detected in audio")
-                                                        
-                                                        # Clear status after a moment
-                                                        await asyncio.sleep(0.5)
-                                                        if self.audio_capture.is_recording:
-                                                            self.ui.set_live_audio("🎤 Listening for speech...")
-                                                    
-                                                    # Reset for next utterance
-                                                    self.audio_capture.current_utterance = []
-                                                    self.audio_capture.silent_frames = 0
-                                                    self.audio_capture.in_speech = False
-                                    else:
-                                        # No VAD - simpler approach
-                                        self.audio_capture.current_utterance.extend(audio_frame)
-                                        if len(self.audio_capture.current_utterance) >= SAMPLE_RATE * 3:  # 3 seconds
-                                            utterance = np.array(self.audio_capture.current_utterance, dtype=np.float32) / 32767.0
-                                            
-                                            # Process the utterance
-                                            self.ui.set_live_audio("🎙️ Processing speech...")
-                                            text = await self.transcriber.transcribe_async(utterance)
-                                            if text:
-                                                self.ui.add_transcription(f"[{time.strftime('%H:%M:%S')}] {text}")
-                                                self.ui.set_live_audio("✓ Speech processed")
-                                            else:
-                                                self.ui.set_live_audio("⚠️ No speech detected")
-                                            
-                                            # Clear and reset
-                                            await asyncio.sleep(0.5)
-                                            self.audio_capture.current_utterance = []
-                                            if self.audio_capture.is_recording:
-                                                self.ui.set_live_audio("🎤 Listening for speech...")
-                                else:
-                                    # No audio data available, just wait
-                                    await asyncio.sleep(0.01)
-                                    
-                            except Exception as e:
-                                self.ui.set_live_audio(f"⚠️ Audio processing issue: {str(e)}")
-                                await asyncio.sleep(0.1)
-                        else:
-                            # Not recording, just wait
-                            await asyncio.sleep(0.1)
-                    except asyncio.CancelledError:
-                        self.running = False
-                        break
-                        
-            except Exception as e:
-                self.ui.set_live_audio(f"❌ Audio processing error: {str(e)}")
-            finally:
-                if self.audio_capture.is_recording:
-                    self.audio_capture.stop_capture()
-                self.ui.stop()
-
-        # Set initial status - ready to start
-        self.ui.set_live_audio("Ready to start recording. Use app controls to begin.")
-        self.ui.add_transcription("Welcome to Live Captions! The UI is ready.")
-        self.ui.add_transcription("Note: Keyboard controls in terminal apps require special handling.")
-        self.ui.add_transcription("For demo purposes, you can start recording programmatically.")
-        
-        # For demo purposes, let's auto-start after a few seconds
-        async def demo_auto_start():
-            await asyncio.sleep(3)
-            if self.running:
-                self.start_recording()
+        # Set up initial UI state
+        self._setup_initial_ui()
         
         try:
+            # Run the three main async tasks concurrently
             await asyncio.gather(
-                self.ui.run(), 
-                update_ui_loop(), 
-                process_audio_loop(),
-                keyboard_handler(),
-                demo_auto_start(),
+                self._run_ui(),
+                self._update_vu_meter(),  
+                self._process_audio(),
+                self._demo_auto_start(),  # For demo purposes
                 return_exceptions=True
             )
         except KeyboardInterrupt:
             logger.info("\n🛑 Shutting down...")
-            self.running = False
         except Exception as e:
             logger.error(f"❌ Application error: {e}")
         finally:
-            if self.audio_capture.is_recording:
-                self.audio_capture.stop_capture()
-            # Shutdown transcriber thread pool
-            self.transcriber.shutdown()
-            self.ui.stop()
+            await self._cleanup()
+    
+    async def _run_ui(self):
+        """Run the UI - simple delegation."""
+        await self.ui.run()
+    
+    async def _update_vu_meter(self):
+        """Update VU meter levels - simple coordination."""
+        while self.running:
+            try:
+                vu_levels = self.audio_processor.get_vu_levels()
+                self.ui.update_vu(vu_levels)
+                await asyncio.sleep(0.1)
+            except asyncio.CancelledError:
+                break
+    
+    async def _process_audio(self):
+        """Process audio - simple delegation."""
+        await self.audio_processor.process_audio_loop()
+    
+    async def _demo_auto_start(self):
+        """Auto-start recording for demo purposes."""
+        await asyncio.sleep(3)  # Wait a few seconds
+        if self.running:
+            self.start_recording()
+    
+    def _setup_initial_ui(self):
+        """Set up initial UI messages."""
+        self.ui.set_live_audio("Ready to start recording...")
+        self.ui.add_transcription("Welcome to Live Captions!")
+        self.ui.add_transcription("The recording will start automatically in a few seconds.")
+        self.ui.add_transcription("Press Ctrl+C to exit.")
+    
+    async def _cleanup(self):
+        """Clean up resources."""
+        self.running = False
+        self.audio_processor.stop()
+        self.transcriber.shutdown()
+        self.ui.stop()
 
 
 def list_audio_devices():
@@ -415,12 +153,15 @@ def list_audio_devices():
         logger.info("  No audio input devices found!")
     
     logger.info("\nTo use a specific device:")
-    logger.info("  python app.py --mic-index NUMBER")
-
+    logger.info("  python simple_app.py --mic-index NUMBER")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Live Captions using OpenAI Whisper")
+    """
+    Simple main function - just argument parsing and app creation.
+    Much cleaner than the original!
+    """
+    parser = argparse.ArgumentParser(description="Live Captions using OpenAI Whisper (Simplified Demo)")
     parser.add_argument("--model-size", choices=["tiny", "base", "small", "medium", "large"], 
                        default="tiny", help="Whisper model size")
     parser.add_argument("--language", help="Language code (e.g., en, es, fr)")
@@ -434,11 +175,10 @@ def main():
         list_audio_devices()
         return
 
+    # Create and run the app - much simpler!
     app = LiveCaptionsApp(
         model_size=args.model_size,
         language=args.language,
-        device="cpu",  # OpenAI Whisper handles device internally
-        compute_type="int8",  # Not used with OpenAI Whisper but kept for compatibility
         mic_index=args.mic_index,
         use_vad=not args.no_vad
     )
