@@ -1,11 +1,69 @@
-# WiWhy this is a good la## Prerequisites
+# 🎙️ On-Device AI Lab: Live Captions (Whisper + Rich UI)
+
+**Transform your Windows PC into a powerful offline “Live Captions” tool with a professional terminal interface.**
+
+This app demonstrates real-time speech transcription using OpenAI Whisper models with voice activity detection, featuring a sophisticated Rich-based terminal UI.
+
+---
+
+## ✨ Current Features
+
+- **Real-time audio capture** (16kHz mono, selectable input device)
+- **Voice Activity Detection** (WebRTC VAD for smart utterance segmentation)
+- **OpenAI Whisper integration** (tiny/base/small models, fully local)
+- **Live VU meters** (stereo, color-coded, real-time)
+- **Rich terminal UI** (XTree-style, multi-panel, responsive)
+- **Transcription log** (scrolling, timestamped)
+- **Device selection panel** (visual, with status markers)
+- **Controls panel** (hotkey reference, status display)
+- **Async architecture** (non-blocking, robust error handling)
+
+---
+
+## 📝 TODO / Roadmap
+
+### 🖥️ User Experience & Hotkeys
+- [ ] Implement all hotkeys shown in the UI:
+  - [ ] `SPACE`: Start/Stop capture (currently only programmatic start)
+  - [ ] `ESC`: Exit application cleanly
+  - [ ] `F1`: Show/hide hotkeys overlay
+  - [ ] `F2`: Save transcript to file
+  - [ ] `F3`: Load file to transcribe
+  - [ ] `F4`: New transcript (clear log)
+  - [ ] `F5`: Toggle system audio (Stereo Mix)
+  - [ ] `F6`: Select input device interactively
+- [ ] Add keyboard navigation for device selection
+- [ ] Add confirmation dialogs for file operations
+- [ ] Status box should display the last detected language
+- [ ] VU meter should show real-time audio processing info (e.g., queue length, last audio message length, chunk window size) instead of stereo bars, since most audio is mono
+
+### 🏗️ Architecture & Code Quality
+- [ ] Refactor for testability without breaking real-time performance
+- [ ] Modularize UI and audio logic (carefully, to avoid regressions)
+- [ ] Add unit/integration tests for audio and VAD pipeline
+- [ ] Improve error handling for device selection and audio failures
+- [ ] Support for background/daemon mode
+
+### 🧠 Features & Enhancements
+- [ ] Streaming partial transcription (word-by-word, not just utterance)
+- [ ] Overlay GUI window (Tkinter or PySimpleGUI)
+- [ ] Output to file/clipboard
+- [ ] Multi-language auto-detection
+- [ ] GPU support (CUDA, if available)
+- [ ] Configurable VAD aggressiveness
+- [ ] Customizable UI themes
+
+---
+
+
+# Prerequisites
 
 - Windows 10/11
-- Python 3.9–3.12 from python.org (includes Tkinter on Windows)
-- A working microphone (or "Stereo Mix" enabled for system audio - see Settings > Sound > Sound Control Panel > Recording tab to enable)Practical: live transcription for meetings, calls, and videos played through speakers (with stereo mix).
+- Python 3.12+ from python.org (includes Tkinter on Windows)
+- A working microphone (or "Stereo Mix" enabled for system audio - see Settings > Sound > Sound Control Panel > Recording tab to enable)
 - Fully local inference: no cloud calls.
 - Simple to set up: minimal dependencies, small "tiny/base" models to start.
-- Fast response: expect 1-3 second processing delays with recommended models.s On-Device AI Lab: Live Captions (Whisper via faster-whisper)
+- Fast response: expect 1-3 second processing delays with recommended models.
 
 This lab turns your Windows PC into an offline “Live Captions” tool. It listens to your microphone, detects speech locally, and shows real-time captions using Whisper models. Everything runs on-device; after the first model download, it works offline.
 
