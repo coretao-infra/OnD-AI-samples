@@ -1,0 +1,7 @@
+openai-whisper
+numpy
+torch
+sounddevice
+soundcard
+webrtcvad>=2.0.10
+rich

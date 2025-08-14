@@ -1,4 +1,11 @@
-# Windows On-Device AI Lab: Live Captions (Whisper via faster-whisper)
+# WiWhy this is a good la## Prerequisites
+
+- Windows 10/11
+- Python 3.9–3.12 from python.org (includes Tkinter on Windows)
+- A working microphone (or "Stereo Mix" enabled for system audio - see Settings > Sound > Sound Control Panel > Recording tab to enable)Practical: live transcription for meetings, calls, and videos played through speakers (with stereo mix).
+- Fully local inference: no cloud calls.
+- Simple to set up: minimal dependencies, small "tiny/base" models to start.
+- Fast response: expect 1-3 second processing delays with recommended models.s On-Device AI Lab: Live Captions (Whisper via faster-whisper)
 
 This lab turns your Windows PC into an offline “Live Captions” tool. It listens to your microphone, detects speech locally, and shows real-time captions using Whisper models. Everything runs on-device; after the first model download, it works offline.
 
@@ -7,16 +14,17 @@ Why this is a good lab
 - Fully local inference: no cloud calls.
 - Simple to set up: minimal dependencies, small “tiny/base” models to start.
 
-What you build
+What you build:
 - A minimal app that:
-  - Captures mic audio
+  - Captures mic audio (or system audio with stereo mix enabled)
   - Uses VAD (voice activity detection) to segment speech
   - Streams transcriptions from a Whisper model (tiny/base/small)
   - Shows real-time captions in a console or a small GUI window
 
-Notes
+Notes:
 - The recommended path is CPU with the tiny or base models for responsiveness.
 - GPU acceleration is optional and mainly for NVIDIA CUDA setups (see below).
+- First run downloads the model (may take a moment) - after that, it's fully offline.
 
 ## Prerequisites
 
@@ -36,12 +44,14 @@ python -m venv .venv
 # - sounddevice: mic capture (PortAudio)
 # - webrtcvad: robust VAD
 # - rich: nicer console output (optional but helpful)
+# Note: First run will download model weights (~40MB for tiny, ~140MB for base)
 pip install faster-whisper sounddevice webrtcvad numpy rich
 ```
 
-Optional GPU (NVIDIA CUDA)
+Optional GPU (NVIDIA CUDA):
 - If you have an NVIDIA GPU with a supported CUDA runtime and drivers, you can try `device=cuda` with faster-whisper.
-- On Windows this requires a CUDA-enabled CTranslate2 build. If the default wheel lacks CUDA support, consult CTranslate2/faster-whisper docs for GPU wheel installation. Otherwise, keep using CPU (recommended for simplicity).
+- On Windows this requires a CUDA-enabled CTranslate2 build. If the default wheel lacks CUDA support, consult CTranslate2/faster-whisper docs for GPU wheel installation. 
+- Otherwise, keep using CPU (recommended for simplicity and compatibility).
 
 ## Run
 
@@ -55,13 +65,13 @@ Console-only example (typical flags your app can support):
 python app.py --model-size tiny --language en --device cpu --compute-type int8
 ```
 
-Suggested flags (implement as appropriate in your app.py)
-- --model-size: tiny | base | small (tiny is fastest; small is better quality but slower)
-- --language: ISO code (e.g., en, es, fr). If omitted, model attempts to detect.
-- --device: cpu (default). Use cuda only if you have CUDA set up.
-- --compute-type: int8 | int8_float16 | float16 | float32 (int8 is fastest on CPU).
-- --mic-index: choose the input device if multiple mics exist.
-- --vad: webrtc (recommended), or disable to stream raw audio (more latency and errors).
+Suggested flags (implement as appropriate in your app.py):
+- `--model-size`: tiny | base | small (tiny is fastest; small is better quality but slower)
+- `--language`: ISO code (e.g., en, es, fr). If omitted, model attempts to detect.
+- `--device`: cpu (default). Use cuda only if you have CUDA set up.
+- `--compute-type`: int8 | int8_float16 | float16 | float32 (int8 is fastest on CPU).
+- `--mic-index`: choose the input device if multiple mics exist.
+- `--vad`: webrtc (recommended), or disable to stream raw audio (more latency and errors).
 
 List your audio devices:
 ```powershell
