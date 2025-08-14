@@ -31,6 +31,21 @@ $venv = ".venv\Scripts\Activate.ps1"
 $reqs = "requirements.txt"
 $app = "app.py"
 
+# Only check for wrong venv if .venv exists
+if (Test-Path ".venv") {
+    $venvPath = (Resolve-Path .venv).Path
+    if ($env:VIRTUAL_ENV) {
+        Write-Host "[INFO] Detected active Python virtual environment: $env:VIRTUAL_ENV" -ForegroundColor Yellow
+        if ($env:VIRTUAL_ENV -ne $venvPath) {
+            Write-Host "[ERROR] A different virtual environment is active!" -ForegroundColor Red
+            Write-Host "[ERROR] Please deactivate it (run 'deactivate') or open a new shell before running this script." -ForegroundColor Red
+            Write-Host "[ERROR] Active: $env:VIRTUAL_ENV" -ForegroundColor Red
+            Write-Host "[ERROR] Expected: $venvPath" -ForegroundColor Red
+            exit 1
+        }
+    }
+}
+
 # 1. Create and activate virtual environment
 if (-not (Test-Path ".venv")) {
     Write-Host "[INFO] Creating virtual environment..." -ForegroundColor Cyan
