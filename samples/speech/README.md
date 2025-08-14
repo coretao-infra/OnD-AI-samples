@@ -50,6 +50,7 @@ This app demonstrates real-time speech transcription using OpenAI Whisper models
 - [ ] Output to file/clipboard
 - [ ] Multi-language auto-detection
 - [ ] GPU support (CUDA, if available)
+- [ ] Run Whisper model on more capable silicon (NPU or GPU acceleration)
 - [ ] Configurable VAD aggressiveness
 - [ ] Customizable UI themes
 
