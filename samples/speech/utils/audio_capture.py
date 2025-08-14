@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 import sounddevice as sd
 from config import SAMPLE_RATE, FRAME_DURATION_MS, FRAMES_PER_BUFFER, AUDIO_QUEUE_SIZE, VU_BUFFER_FRAMES
-from utils.logger import logger
+from .logger import logger
 
 
 class AudioCapture:
@@ -48,10 +48,17 @@ class AudioCapture:
     def _update_vu_buffer(self, audio_data):
         """Update the circular VU buffer."""
         frame_size = len(audio_data)
+        # Ensure we don't exceed buffer bounds
         if self.vu_write_pos + frame_size > len(self.vu_buffer):
-            self.vu_write_pos = 0  # Wrap around
-        self.vu_buffer[self.vu_write_pos:self.vu_write_pos + frame_size] = audio_data
-        self.vu_write_pos += frame_size
+            # Split the write across buffer boundary
+            remaining_space = len(self.vu_buffer) - self.vu_write_pos
+            self.vu_buffer[self.vu_write_pos:] = audio_data[:remaining_space]
+            self.vu_buffer[:frame_size - remaining_space] = audio_data[remaining_space:]
+            self.vu_write_pos = frame_size - remaining_space
+        else:
+            # Normal write within bounds
+            self.vu_buffer[self.vu_write_pos:self.vu_write_pos + frame_size] = audio_data
+            self.vu_write_pos += frame_size
     
     def _log_audio_levels(self, audio_data):
         """Log audio levels periodically for debugging."""
@@ -118,9 +125,10 @@ class AudioCapture:
         try:
             # Calculate RMS from the circular buffer
             rms_level = np.sqrt(np.mean((self.vu_buffer.astype(np.float32) / 32767.0) ** 2))
-            # Simulate stereo with slight variation
-            left_level = min(1.0, rms_level * 50)
-            right_level = min(1.0, rms_level * 48)
+            # Scale more aggressively for visible VU meter response
+            # Based on log analysis: audio levels 0-10000 should map to 0-1.0 VU range
+            left_level = min(1.0, rms_level * 500)  # More aggressive scaling
+            right_level = min(1.0, rms_level * 480)  # Slight stereo variation
             return [left_level, right_level]
         except:
             return [0.0, 0.0]

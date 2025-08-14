@@ -3,11 +3,11 @@ Voice Activity Detection module.
 Handles speech detection and utterance segmentation.
 """
 
-from typing import Generator, List
+from typing import Generator, List, Optional, Union
 import numpy as np
 import webrtcvad
 from config import SAMPLE_RATE, SILENCE_THRESHOLD, VAD_AGGRESSIVENESS, MIN_UTTERANCE_LENGTH, CHUNK_DURATION_SECONDS
-from utils.logger import logger
+from .logger import logger
 
 
 class VoiceActivityDetector:
@@ -70,7 +70,7 @@ class VoiceActivityDetector:
             if utterance is not None:
                 yield utterance
     
-    def _finalize_utterance(self) -> np.ndarray | None:
+    def _finalize_utterance(self) -> Optional[np.ndarray]:
         """Convert current utterance to normalized float array."""
         if not self.current_utterance:
             return None

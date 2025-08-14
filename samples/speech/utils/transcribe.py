@@ -108,8 +108,24 @@ class WhisperTranscriber:
         Returns:
             Transcribed text or empty string on error
         """
+        def _transcribe_with_capture(audio_data):
+            """Wrapper to ensure output capture works in thread pool."""
+            try:
+                # Capture all Whisper output to prevent UI interference
+                with self._capture_whisper_output():
+                    result = self.model.transcribe(
+                        audio_data,
+                        language=self.language,
+                        task="transcribe",
+                        verbose=False
+                    )
+                return result["text"].strip()
+            except Exception as e:
+                logger.error(f"Transcription error: {e}")
+                return ""
+        
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self._executor, self.transcribe, audio)
+        return await loop.run_in_executor(self._executor, _transcribe_with_capture, audio)
     
     def shutdown(self):
         """Shutdown the thread pool executor."""

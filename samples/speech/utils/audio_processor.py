@@ -7,10 +7,10 @@ import asyncio
 import time
 from typing import Optional
 import numpy as np
-from utils.audio_capture import AudioCapture
-from utils.voice_activity import VoiceActivityDetector
-from utils.transcribe import WhisperTranscriber
-from utils.logger import logger
+from .audio_capture import AudioCapture
+from .voice_activity import VoiceActivityDetector
+from .transcribe import WhisperTranscriber
+from .logger import logger
 
 
 class AudioProcessor:

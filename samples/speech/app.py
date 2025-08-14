@@ -85,12 +85,12 @@ class LiveCaptionsApp:
         self._setup_initial_ui()
         
         try:
-            # Run the three main async tasks concurrently
+            # Run the main async tasks concurrently
             await asyncio.gather(
                 self._run_ui(),
                 self._update_vu_meter(),  
                 self._process_audio(),
-                self._demo_auto_start(),  # For demo purposes
+                self._demo_auto_start(),
                 return_exceptions=True
             )
         except KeyboardInterrupt:
@@ -132,11 +132,26 @@ class LiveCaptionsApp:
         self.ui.add_transcription("Press Ctrl+C to exit.")
     
     async def _cleanup(self):
-        """Clean up resources."""
+        """Clean up resources in proper order."""
+        logger.info("Starting cleanup...")
         self.running = False
-        self.audio_processor.stop()
-        self.transcriber.shutdown()
-        self.ui.stop()
+        
+        try:
+            # Stop audio processing first
+            if hasattr(self, 'audio_processor'):
+                self.audio_processor.stop()
+            
+            # Shutdown transcriber (with quick timeout to avoid hanging)
+            if hasattr(self, 'transcriber'):
+                self.transcriber.shutdown()
+            
+            # Stop UI last
+            if hasattr(self, 'ui'):
+                self.ui.stop()
+                
+            logger.info("Cleanup completed")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
 
 
 def list_audio_devices():
@@ -153,7 +168,7 @@ def list_audio_devices():
         logger.info("  No audio input devices found!")
     
     logger.info("\nTo use a specific device:")
-    logger.info("  python simple_app.py --mic-index NUMBER")
+    logger.info("  python app.py --mic-index NUMBER")
 
 
 def main():

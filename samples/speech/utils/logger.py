@@ -12,7 +12,7 @@ logger.setLevel(logging.INFO)
 # Remove all handlers associated with the root logger object (prevents duplicate output)
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-# Add only file handler
+# Add only file handler - no console output to avoid UI interference
 file_handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
 file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 logger.handlers = [file_handler]
