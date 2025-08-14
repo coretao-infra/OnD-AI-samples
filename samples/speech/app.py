@@ -16,8 +16,9 @@ from typing import Generator, Optional, Tuple
 import numpy as np
 import sounddevice as sd
 import webrtcvad
-import whisper
 from utils.enhanced_ui import EnhancedXTreeUI
+from utils.logger import logger
+from utils.transcribe import WhisperTranscriber
 
 # --- Constants ---
 SAMPLE_RATE = 16000  # Whisper models expect 16kHz
@@ -45,7 +46,7 @@ class AudioCapture:
     def audio_callback(self, indata, frames, time, status):
         """Called by sounddevice for each audio frame."""
         if status:
-            print(f"Audio callback status: {status}")
+            logger.warning(f"Audio callback status: {status}")
         
         # Convert to int16 for VAD and queue for processing
         audio_int16 = (indata[:, 0] * 32767).astype(np.int16)
@@ -58,17 +59,17 @@ class AudioCapture:
             
         if self._callback_count % 50 == 0:  # Every ~1.5 seconds at 30ms frames
             max_amplitude = np.max(np.abs(audio_int16))
-            print(f"Audio level: {max_amplitude} (frames processed: {self._callback_count})")
+            logger.info(f"Audio level: {max_amplitude} (frames processed: {self._callback_count})")
         
         try:
             self.audio_queue.put_nowait(audio_int16)
         except queue.Full:
-            print("Warning: Audio queue full, dropping frame")
+            logger.warning("Warning: Audio queue full, dropping frame")
             pass
     
     def start_capture(self):
         """Start audio capture."""
-        print("🎙️ Starting audio capture...")
+        logger.info("🎙️ Starting audio capture...")
         self.is_recording = True
 
         # Use specified device or system default input device
@@ -78,15 +79,15 @@ class AudioCapture:
             try:
                 device_to_use = sd.default.device[0]  # [0] is input, [1] is output
                 if device_to_use == -1:
-                    print("ERROR: No default input device configured.")
-                    print("Please run with --list-devices to see available devices")
-                    print("Then select a specific device with --mic-index NUMBER")
+                    logger.error("ERROR: No default input device configured.")
+                    logger.error("Please run with --list-devices to see available devices")
+                    logger.error("Then select a specific device with --mic-index NUMBER")
                     raise ValueError("No default input device configured")
-                print(f"Using system default input device: {device_to_use}")
+                logger.info(f"Using system default input device: {device_to_use}")
             except Exception as e:
-                print(f"ERROR: Could not get default input device: {e}")
-                print("Please run with --list-devices to see available devices")
-                print("Then select a specific device with --mic-index NUMBER")
+                logger.error(f"ERROR: Could not get default input device: {e}")
+                logger.error("Please run with --list-devices to see available devices")
+                logger.error("Then select a specific device with --mic-index NUMBER")
                 raise RuntimeError("No default input device available")
 
         # Get device info for display
@@ -96,11 +97,11 @@ class AudioCapture:
         # Force 16kHz for Whisper and VAD compatibility
         target_rate = SAMPLE_RATE  # Always use 16kHz
 
-        print(f"✓ Using device: {device_name}")
-        print(f"Recording at 16kHz (Whisper/VAD compatible)")
+        logger.info(f"✓ Using device: {device_name}")
+        logger.info(f"Recording at 16kHz (Whisper/VAD compatible)")
         # Calculate frame size for 16kHz
         frames_per_buffer = int(target_rate * FRAME_DURATION_MS / 1000)
-        print(f"Frame size: {frames_per_buffer} samples ({FRAME_DURATION_MS}ms)")
+        logger.info(f"Frame size: {frames_per_buffer} samples ({FRAME_DURATION_MS}ms)")
         try:
             self.stream = sd.InputStream(
                 samplerate=target_rate,  # Force 16kHz
@@ -111,11 +112,11 @@ class AudioCapture:
                 callback=self.audio_callback
             )
             self.stream.start()
-            print("✓ Audio stream started successfully!")
+            logger.info("✓ Audio stream started successfully!")
         except Exception as e:
-            print(f"✗ Failed to start audio stream: {e}")
+            logger.error(f"✗ Failed to start audio stream: {e}")
             raise
-        print(f"Started audio capture (device: {device_to_use} - {device_name})")
+        logger.info(f"Started audio capture (device: {device_to_use} - {device_name})")
     
     def stop_capture(self):
         """Stop audio capture."""
@@ -123,7 +124,7 @@ class AudioCapture:
         if self.stream:
             self.stream.stop()
             self.stream.close()
-        print("Stopped audio capture")
+    logger.info("Stopped audio capture")
     
     def get_utterances(self) -> Generator[np.ndarray, None, None]:
         """Generator that yields complete utterances."""
@@ -167,7 +168,7 @@ class AudioCapture:
                 # No audio available right now, that's OK
                 continue
             except Exception as e:
-                print(f"Error processing audio: {e}")
+                logger.error(f"Error processing audio: {e}")
                 break
 
 
@@ -182,10 +183,13 @@ class LiveCaptionsApp:
         self.device = device
         self.compute_type = compute_type
         self.use_vad = use_vad
-        # Load OpenAI Whisper model
-        print(f"Loading Whisper model: {model_size}")
-        self.model = whisper.load_model(model_size)
-        print("Model loaded successfully")
+        # Initialize Whisper transcriber
+        self.transcriber = WhisperTranscriber(
+            model_size=model_size,
+            language=language,
+            device=device,
+            compute_type=compute_type
+        )
         self.audio_capture = AudioCapture(mic_index, use_vad)
         self.running = False
         self.transcript_history = []
@@ -214,18 +218,8 @@ class LiveCaptionsApp:
             self.start_recording()
 
     def transcribe_audio(self, audio: np.ndarray) -> str:
-        try:
-            # Use OpenAI Whisper transcription
-            result = self.model.transcribe(
-                audio,
-                language=self.language,
-                task="transcribe",
-                verbose=False
-            )
-            return result["text"].strip()
-        except Exception as e:
-            print(f"Transcription error: {e}")
-            return ""
+        """Transcribe audio using the Whisper transcriber."""
+        return self.transcriber.transcribe(audio)
 
     async def run(self):
         self.running = True
@@ -400,10 +394,10 @@ class LiveCaptionsApp:
                 return_exceptions=True
             )
         except KeyboardInterrupt:
-            print("\n🛑 Shutting down...")
+            logger.info("\n🛑 Shutting down...")
             self.running = False
         except Exception as e:
-            print(f"❌ Application error: {e}")
+            logger.error(f"❌ Application error: {e}")
         finally:
             if self.audio_capture.is_recording:
                 self.audio_capture.stop_capture()
@@ -412,19 +406,19 @@ class LiveCaptionsApp:
 
 def list_audio_devices():
     """List available audio input devices."""
-    print("Available audio input devices:")
+    logger.info("Available audio input devices:")
     devices = sd.query_devices()
     found = False
     for i, device in enumerate(devices):
         if device['max_input_channels'] > 0:
-            print(f"  {i}: {device['name']} (inputs: {device['max_input_channels']})")
+            logger.info(f"  {i}: {device['name']} (inputs: {device['max_input_channels']})")
             found = True
     
     if not found:
-        print("  No audio input devices found!")
+        logger.info("  No audio input devices found!")
     
-    print("\nTo use a specific device:")
-    print("  python app.py --mic-index NUMBER")
+    logger.info("\nTo use a specific device:")
+    logger.info("  python app.py --mic-index NUMBER")
 
 
 
@@ -455,9 +449,9 @@ def main():
     try:
         asyncio.run(app.run())
     except KeyboardInterrupt:
-        print("\n✅ Application stopped by user")
+        logger.info("\n✅ Application stopped by user")
     except Exception as e:
-        print(f"❌ Application failed: {e}")
+        logger.error(f"❌ Application failed: {e}")
 
 
 if __name__ == "__main__":
