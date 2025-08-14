@@ -25,7 +25,7 @@ SAMPLE_RATE = 16000  # Whisper models expect 16kHz
 FRAME_DURATION_MS = 30  # WebRTC VAD frame duration
 FRAMES_PER_BUFFER = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)  # 480 samples
 SILENCE_THRESHOLD = 20  # Number of silent frames to end utterance
-AUDIO_QUEUE_SIZE = 100
+AUDIO_QUEUE_SIZE = 500  # Increased to handle transcription delays (~15 seconds buffer)
 
 
 class AudioCapture:
@@ -42,6 +42,9 @@ class AudioCapture:
         self.current_utterance = []
         self.silent_frames = 0
         self.in_speech = False
+        # VU meter data (separate from processing queue)
+        self.vu_buffer = np.zeros(FRAMES_PER_BUFFER * 5)  # Last 5 frames for VU
+        self.vu_write_pos = 0
     
     def audio_callback(self, indata, frames, time, status):
         """Called by sounddevice for each audio frame."""
@@ -50,6 +53,13 @@ class AudioCapture:
         
         # Convert to int16 for VAD and queue for processing
         audio_int16 = (indata[:, 0] * 32767).astype(np.int16)
+        
+        # Update VU buffer (separate from processing queue)
+        frame_size = len(audio_int16)
+        if self.vu_write_pos + frame_size > len(self.vu_buffer):
+            self.vu_write_pos = 0  # Wrap around
+        self.vu_buffer[self.vu_write_pos:self.vu_write_pos + frame_size] = audio_int16
+        self.vu_write_pos += frame_size
         
         # Log audio levels periodically
         if hasattr(self, '_callback_count'):
@@ -126,8 +136,19 @@ class AudioCapture:
             self.stream.close()
     logger.info("Stopped audio capture")
     
+    def get_vu_levels(self):
+        """Get current VU levels from the dedicated VU buffer."""
+        try:
+            # Calculate RMS from the circular VU buffer
+            rms_level = np.sqrt(np.mean((self.vu_buffer.astype(np.float32) / 32767.0) ** 2))
+            # Simulate stereo by adding slight variation
+            left_level = min(1.0, rms_level * 50)
+            right_level = min(1.0, rms_level * 48)
+            return [left_level, right_level]
+        except:
+            return [0.0, 0.0]
+    
     def get_utterances(self) -> Generator[np.ndarray, None, None]:
-        """Generator that yields complete utterances."""
         while self.is_recording:
             try:
                 # Get audio frame from queue with shorter timeout for better responsiveness
@@ -220,7 +241,7 @@ class LiveCaptionsApp:
     def transcribe_audio(self, audio: np.ndarray) -> str:
         """Transcribe audio using the Whisper transcriber."""
         return self.transcriber.transcribe(audio)
-
+    
     async def run(self):
         self.running = True
         # Don't start capture immediately - wait for user to start it
@@ -245,36 +266,10 @@ class LiveCaptionsApp:
         async def update_ui_loop():
             while self.running:
                 try:
-                    # Only calculate VU levels if we're actually capturing
+                    # Get VU levels from the dedicated VU buffer (no queue interference)
                     if self.audio_capture.is_recording:
-                        try:
-                            # Get recent audio data for VU calculation using non-blocking approach
-                            recent_frames = []
-                            
-                            # Collect up to 5 recent frames without blocking
-                            for _ in range(min(5, self.audio_capture.audio_queue.qsize())):
-                                try:
-                                    frame = self.audio_capture.audio_queue.get_nowait()
-                                    recent_frames.append(frame)
-                                    # Put frame back for processing
-                                    self.audio_capture.audio_queue.put_nowait(frame)
-                                except:
-                                    break
-                            
-                            if recent_frames:
-                                # Calculate VU levels from recent audio
-                                combined_audio = np.concatenate(recent_frames)
-                                rms_level = np.sqrt(np.mean(combined_audio.astype(np.float32)**2))
-                                # Simulate stereo by adding slight variation
-                                left_level = min(1.0, rms_level * 50)  # Scale for visualization
-                                right_level = min(1.0, rms_level * 48)  # Slight difference for stereo effect
-                                self.ui.update_vu([left_level, right_level])
-                            else:
-                                # No audio, show silence
-                                self.ui.update_vu([0.0, 0.0])
-                        except:
-                            # Show silence if audio calculation fails
-                            self.ui.update_vu([0.0, 0.0])
+                        vu_levels = self.audio_capture.get_vu_levels()
+                        self.ui.update_vu(vu_levels)
                     else:
                         # Not recording, show silence
                         self.ui.update_vu([0.0, 0.0])
@@ -315,7 +310,7 @@ class LiveCaptionsApp:
                                                         
                                                         # Process the utterance
                                                         self.ui.set_live_audio("🎙️ Processing speech...")
-                                                        text = self.transcribe_audio(utterance)
+                                                        text = await self.transcriber.transcribe_async(utterance)
                                                         if text:
                                                             self.ui.add_transcription(f"[{time.strftime('%H:%M:%S')}] {text}")
                                                             self.ui.set_live_audio("✓ Speech processed successfully")
@@ -339,7 +334,7 @@ class LiveCaptionsApp:
                                             
                                             # Process the utterance
                                             self.ui.set_live_audio("🎙️ Processing speech...")
-                                            text = self.transcribe_audio(utterance)
+                                            text = await self.transcriber.transcribe_async(utterance)
                                             if text:
                                                 self.ui.add_transcription(f"[{time.strftime('%H:%M:%S')}] {text}")
                                                 self.ui.set_live_audio("✓ Speech processed")
@@ -401,6 +396,8 @@ class LiveCaptionsApp:
         finally:
             if self.audio_capture.is_recording:
                 self.audio_capture.stop_capture()
+            # Shutdown transcriber thread pool
+            self.transcriber.shutdown()
             self.ui.stop()
 
 

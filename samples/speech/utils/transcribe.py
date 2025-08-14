@@ -4,10 +4,12 @@ Isolates all Whisper-related concerns including output capture.
 """
 
 import sys
+import asyncio
 import whisper
 import numpy as np
 from contextlib import contextmanager
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor
 from .logger import logger
 
 
@@ -29,6 +31,9 @@ class WhisperTranscriber:
         self.language = language
         self.device = device  # Kept for compatibility
         self.compute_type = compute_type  # Kept for compatibility
+        
+        # Thread pool for async transcription
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="whisper")
         
         # Load the Whisper model with output capture
         with self._capture_whisper_output():
@@ -92,6 +97,23 @@ class WhisperTranscriber:
         except Exception as e:
             logger.error(f"Transcription error: {e}")
             return ""
+    
+    async def transcribe_async(self, audio: np.ndarray) -> str:
+        """
+        Asynchronously transcribe audio using Whisper.
+        
+        Args:
+            audio: Audio data as numpy array (16kHz, float32)
+            
+        Returns:
+            Transcribed text or empty string on error
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._executor, self.transcribe, audio)
+    
+    def shutdown(self):
+        """Shutdown the thread pool executor."""
+        self._executor.shutdown(wait=True)
     
     def get_model_info(self) -> dict:
         """Get information about the loaded model."""
