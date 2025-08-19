@@ -64,16 +64,25 @@ def get_config(section, key, required=True):
 
 logging.info("Loading configuration from config.ini")
 
+
+
 try:
 	LLM_ALIAS = get_config('llm', 'alias', required=True)
 	logging.info(f"LLM_ALIAS: {LLM_ALIAS}")
 	LLM_VARIANT = get_config('llm', 'variant', required=True)
 	logging.info(f"LLM_VARIANT: {LLM_VARIANT}")
+	LLM_VARIANT_ALTERNATIVE = get_config('llm', 'variant_alternative', required=False)
+	if LLM_VARIANT_ALTERNATIVE:
+		logging.info(f"LLM_VARIANT_ALTERNATIVE: {LLM_VARIANT_ALTERNATIVE}")
 	LLM_ENDPOINT = get_config('llm', 'endpoint', required=True)
 	logging.info(f"LLM_ENDPOINT: {LLM_ENDPOINT}")
 	LLM_API_KEY = get_config('llm', 'api_key', required=False)
-	NORMALIZE_META_PROMPT = get_config('normalize', 'normalize_meta_prompt', required=True)
-	logging.info(f"NORMALIZE_META_PROMPT: {NORMALIZE_META_PROMPT}")
+	LLM_LOG_PATH = get_config('llm', 'llm_log', required=True)
+	logging.info(f"LLM_LOG_PATH: {LLM_LOG_PATH}")
+	LLM_BACKEND = get_config('llm', 'llm_backend', required=True)
+	logging.info(f"LLM_BACKEND: {LLM_BACKEND}")
+	LLM_LOG_LEVEL = get_config('llm', 'llm_log_level', required=False) or "INFO"
+	logging.info(f"LLM_LOG_LEVEL: {LLM_LOG_LEVEL}")
 	DEFAULT_META_PROMPT = get_config('llm', 'default_meta_prompt', required=True)
 	logging.info(f"DEFAULT_META_PROMPT: {DEFAULT_META_PROMPT}")
 	NORMALIZE_INPUT_DIR = get_config('normalize', 'input_dir', required=True)
@@ -82,9 +91,19 @@ try:
 	logging.info(f"NORMALIZE_META_OUT: {NORMALIZE_META_OUT}")
 	NORMALIZE_SCHEMA_PATH = get_config('normalize', 'schema_path', required=True)
 	logging.info(f"NORMALIZE_SCHEMA_PATH: {NORMALIZE_SCHEMA_PATH}")
+	NORMALIZE_OUTPUT_PATH = get_config('normalize', 'normalize_output_path', required=True)
+	logging.info(f"NORMALIZE_OUTPUT_PATH: {NORMALIZE_OUTPUT_PATH}")
+	NORMALIZE_OUTPUT_LOG_PATH = get_config('normalize', 'normalize_output_log_path', required=True)
+	logging.info(f"NORMALIZE_OUTPUT_LOG_PATH: {NORMALIZE_OUTPUT_LOG_PATH}")
+	NORMALIZE_BASELINE_OUTPUT_PATH = get_config('normalize', 'normalize_baseline_output_path', required=True)
+	logging.info(f"NORMALIZE_BASELINE_OUTPUT_PATH: {NORMALIZE_BASELINE_OUTPUT_PATH}")
+	BASELINE_USER_PROMPT = get_config('baseline', 'baseline_user_prompt', required=True)
+	logging.info(f"BASELINE_USER_PROMPT: {BASELINE_USER_PROMPT}")
+	BASELINE_SYSTEM_PROMPT = get_config('baseline', 'baseline_system_prompt', required=True)
+	logging.info(f"BASELINE_SYSTEM_PROMPT: {BASELINE_SYSTEM_PROMPT}")
 except Exception as e:
-    logging.error(f"Configuration error: {e}")
-    raise SystemExit(f"[config.py] Configuration error: {e}")
+	logging.error(f"Configuration error: {e}")
+	raise SystemExit(f"[config.py] Configuration error: {e}")
 
 def get_llm_variant():
 	"""

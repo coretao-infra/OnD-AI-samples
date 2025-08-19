@@ -4,6 +4,7 @@ Mark 1: Extract metadata from all images in the input directory and save to CSV 
 
 
 
+
 import os
 import sys
 import json
@@ -11,8 +12,9 @@ import argparse
 import pandas as pd
 import logging
 
-from app.utils.config import NORMALIZE_INPUT_DIR, NORMALIZE_META_OUT
+from app.utils.config import NORMALIZE_INPUT_DIR, NORMALIZE_META_OUT, NORMALIZE_BASELINE_OUTPUT_PATH
 from app.utils.metadata import extract_metadata
+from app.utils.baseline import establish_baseline_from_metadata
 
 
 
@@ -45,10 +47,23 @@ def main():
         logging.error("No images found or failed to extract metadata.")
         print("No images found or failed to extract metadata.")
         sys.exit(1)
+
     df = pd.DataFrame(records)
     df.to_csv(args.output, index=False)
     logging.info(f"Metadata for {len(df)} images written to {args.output} using profile '{args.profile}'")
     print(f"Metadata for {len(df)} images written to {args.output} using profile '{args.profile}'")
+
+    # Establish baseline normalization parameters using the generated metadata CSV
+    try:
+        baseline_params = establish_baseline_from_metadata(args.output)
+        logging.info(f"Baseline normalization parameters: {baseline_params}")
+        # Save baseline params to canonical output path
+        with open(NORMALIZE_BASELINE_OUTPUT_PATH, 'w', encoding='utf-8') as f:
+            json.dump(baseline_params, f, indent=2)
+        print(f"Baseline normalization parameters written to {NORMALIZE_BASELINE_OUTPUT_PATH}")
+    except Exception as e:
+        logging.error(f"Failed to establish or save baseline normalization parameters: {e}")
+        print(f"Failed to establish or save baseline normalization parameters: {e}")
 
 
 # Canonical script entry point
