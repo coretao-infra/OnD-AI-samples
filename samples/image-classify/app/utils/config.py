@@ -66,6 +66,7 @@ logging.info("Loading configuration from config.ini")
 
 
 
+
 try:
 	LLM_ALIAS = get_config('llm', 'alias', required=True)
 	logging.info(f"LLM_ALIAS: {LLM_ALIAS}")
@@ -113,6 +114,13 @@ try:
 	except Exception as e:
 		logging.error(f"Failed to parse BASELINE_SCHEMA_STATIC: {e}")
 		raise SystemExit(f"[config.py] Failed to parse BASELINE_SCHEMA_STATIC: {e}")
+	# Parse allowed_color_modes as a list if present (from [normalize] section)
+	_allowed_color_modes = get_config('normalize', 'allowed_color_modes', required=False)
+	if _allowed_color_modes:
+		ALLOWED_COLOR_MODES = [x.strip() for x in _allowed_color_modes.split(',') if x.strip()]
+		logging.info(f"ALLOWED_COLOR_MODES: {ALLOWED_COLOR_MODES}")
+	else:
+		ALLOWED_COLOR_MODES = None
 except Exception as e:
 	logging.error(f"Configuration error: {e}")
 	raise SystemExit(f"[config.py] Configuration error: {e}")

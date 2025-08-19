@@ -1,14 +1,16 @@
 {
   "baseline_marker": "v1",
-  "target_width": 2573,
-  "target_height": null,
+  "target_width": 2733,
+  "target_height": 1448,
+  "null ok": "example",
   "resize_mode": "fit",
-  "color_mode": "RGB",
-  "quality": 90,
-  "preserve_aspect_ratio": true,
   "crop": "center",
-  "strip_metadata": true,
+  "color_mode": "RGB",
+  "quality": 88,
+  "none": "example",
   "background_color": "#FFFFFF",
-  "timestamp": "2023-04-01T12:00:00Z",
+  "preserve_aspect_ratio": true,
+  "strip_metadata": true,
+  "timestamp": "2025-08-19T21:38:24Z",
   "output_format": "JPEG"
 }

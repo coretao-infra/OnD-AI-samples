@@ -613,3 +613,192 @@ Note: The quality parameter is set to the midpoint of the specified range (85-95
 ```
 ========================================
 [LLM DEBUG] RESPONSE PAYLOAD: {"elapsed": 25.813708782196045, "response_chars": 874, "response": " {\n  \"baseline_marker\": \"v1\",\n  \"target_width\": 2573,\n  \"targetdict_height\": 2043,\n  \"resize_mode\": \"fit\",\n  \"color_mode\": \"RGB\",\n  \"quality\": 90\n}\n\nNote: The quality parameter is set to the midpoint of the specified range (85-95), which is 90. The target_height is inferred from the mode of the height histogram, which is 2043. The target_width is taken from the mode of the width histogram, which is 2573. The background_color is set to white as specified. The resize_mode is set to \"fit\" to maintain the aspect ratio while resizing. The color_mode is set to \"RGB\" as it is the most common mode in the metadata summary. The quality is adjusted to a standard value within the given range for consistent image quality.\n\n```json\n{\n  \"baseline_marker\": \"v1\",\n  \"target_width\": 2573,\n  \"target_height\": 2043,\n  \"resize_mode\": \"fit\",\n  \"color_mode\": \"RGB\",\n  \"quality\": 90\n}\n```"}
+
+[LLM STEP 1: Prompt Preparation]
+System prompt: You are the brain of a seasoned LM scientist with powerful intuition encapsulated as an API responder. Your output is compact and correct json with only and all the required fields. Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+User prompt: Given the following image collection metadata summary and the baseline_schema_criteria object, recommend normalization parameters for robust, reproducible ML preprocessing. Respond with only the JSON object. Metadata summary: {"num_images": 32, "width": {"min": 1448, "max": 5712, "mean": 2733.71875, "mode": 2573, "histogram": {"1448-1981": 6, "1981-2514": 0, "2514-3047": 19, "3047-3580": 0, "3580-4113": 6, "4113-4646": 0, "4646-5179": 0, "5179-5712": 1}}, "height": {"min": 1448, "max": 4284, "mean": 2043.0625, "mode": 1448, "histogram": {"1448-1802": 19, "1802-2157": 0, "2157-2511": 0, "2511-2866": 6, "2866-3220": 6, "3220-3575": 0, "3575-3929": 0, "3929-4284": 1}}, "file_size": {"min": 1136661, "max": 9262988, "mean": 2674053.0625, "mode": 9262988, "histogram": {"1136661-2152451": 16, "2152451-3168242": 8, "3168242-4184033": 3, "4184033-5199824": 4, "5199824-6215615": 0, "6215615-7231406": 0, "7231406-8247197": 0, "8247197-9262988": 1}}, "color_modes_top": {"RGB": 32}, "formats_top": {"JPEG": 25, "MPO": 7}} Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+---
+[LLM STEP 2: Payload Construction]
+Endpoint: http://localhost:8000/v1
+Model: Phi-3.5-mini-instruct-generic-cpu
+Message count: 2
+Payload chars: 1624
+max_tokens: 4096
+Payload kwargs: {}
+---
+[LLM STEP 3: Sending Request]
+Sending request to LLM...
+---
+[LLM DEBUG] REQUEST PAYLOAD: {"endpoint": "http://localhost:8000/v1", "model": "Phi-3.5-mini-instruct-generic-cpu", "messages": [{"role": "system", "content": "You are the brain of a seasoned LM scientist with powerful intuition encapsulated as an API responder. Your output is compact and correct json with only and all the required fields. Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}, {"role": "user", "content": "Given the following image collection metadata summary and the baseline_schema_criteria object, recommend normalization parameters for robust, reproducible ML preprocessing. Respond with only the JSON object. Metadata summary: {\"num_images\": 32, \"width\": {\"min\": 1448, \"max\": 5712, \"mean\": 2733.71875, \"mode\": 2573, \"histogram\": {\"1448-1981\": 6, \"1981-2514\": 0, \"2514-3047\": 19, \"3047-3580\": 0, \"3580-4113\": 6, \"4113-4646\": 0, \"4646-5179\": 0, \"5179-5712\": 1}}, \"height\": {\"min\": 1448, \"max\": 4284, \"mean\": 2043.0625, \"mode\": 1448, \"histogram\": {\"1448-1802\": 19, \"1802-2157\": 0, \"2157-2511\": 0, \"2511-2866\": 6, \"2866-3220\": 6, \"3220-3575\": 0, \"3575-3929\": 0, \"3929-4284\": 1}}, \"file_size\": {\"min\": 1136661, \"max\": 9262988, \"mean\": 2674053.0625, \"mode\": 9262988, \"histogram\": {\"1136661-2152451\": 16, \"2152451-3168242\": 8, \"3168242-4184033\": 3, \"4184033-5199824\": 4, \"5199824-6215615\": 0, \"6215615-7231406\": 0, \"7231406-8247197\": 0, \"8247197-9262988\": 1}}, \"color_modes_top\": {\"RGB\": 32}, \"formats_top\": {\"JPEG\": 25, \"MPO\": 7}} Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}], "max_tokens": 4096, "kwargs": {}}
+[LLM STEP 4: Response Received]
+Elapsed: 23.12s
+Response chars: 874
+Response:
+ {
+  "baseline_marker": "v1",
+  "target_width": 2573,
+  "targetdict_height": 2043,
+  "resize_mode": "fit",
+  "color_mode": "RGB",
+  "quality": 90
+}
+
+Note: The quality parameter is set to the midpoint of the specified range (85-95), which is 90. The target_height is inferred from the mode of the height histogram, which is 2043. The target_width is taken from the mode of the width histogram, which is 2573. The background_color is set to white as specified. The resize_mode is set to "fit" to maintain the aspect ratio while resizing. The color_mode is set to "RGB" as it is the most common mode in the metadata summary. The quality is adjusted to a standard value within the given range for consistent image quality.
+
+```json
+{
+  "baseline_marker": "v1",
+  "target_width": 2573,
+  "target_height": 2043,
+  "resize_mode": "fit",
+  "color_mode": "RGB",
+  "quality": 90
+}
+```
+========================================
+[LLM DEBUG] RESPONSE PAYLOAD: {"elapsed": 23.116273880004883, "response_chars": 874, "response": " {\n  \"baseline_marker\": \"v1\",\n  \"target_width\": 2573,\n  \"targetdict_height\": 2043,\n  \"resize_mode\": \"fit\",\n  \"color_mode\": \"RGB\",\n  \"quality\": 90\n}\n\nNote: The quality parameter is set to the midpoint of the specified range (85-95), which is 90. The target_height is inferred from the mode of the height histogram, which is 2043. The target_width is taken from the mode of the width histogram, which is 2573. The background_color is set to white as specified. The resize_mode is set to \"fit\" to maintain the aspect ratio while resizing. The color_mode is set to \"RGB\" as it is the most common mode in the metadata summary. The quality is adjusted to a standard value within the given range for consistent image quality.\n\n```json\n{\n  \"baseline_marker\": \"v1\",\n  \"target_width\": 2573,\n  \"target_height\": 2043,\n  \"resize_mode\": \"fit\",\n  \"color_mode\": \"RGB\",\n  \"quality\": 90\n}\n```"}
+
+[LLM STEP 1: Prompt Preparation]
+System prompt: You are the brain of a seasoned LM scientist with powerful intuition encapsulated as an API responder. Your output is compact and correct json with only and all the required fields. Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+User prompt: Given the following image collection metadata summary and the baseline_schema_criteria object, recommend normalization parameters for robust, reproducible ML preprocessing. Respond with only the JSON object. Metadata summary: {"num_images": 32, "width": {"min": 1448, "max": 5712, "mean": 2733.71875, "mode": 2573, "histogram": {"1448-1981": 6, "1981-2514": 0, "2514-3047": 19, "3047-3580": 0, "3580-4113": 6, "4113-4646": 0, "4646-5179": 0, "5179-5712": 1}}, "height": {"min": 1448, "max": 4284, "mean": 2043.0625, "mode": 1448, "histogram": {"1448-1802": 19, "1802-2157": 0, "2157-2511": 0, "2511-2866": 6, "2866-3220": 6, "3220-3575": 0, "3575-3929": 0, "3929-4284": 1}}, "file_size": {"min": 1136661, "max": 9262988, "mean": 2674053.0625, "mode": 9262988, "histogram": {"1136661-2152451": 16, "2152451-3168242": 8, "3168242-4184033": 3, "4184033-5199824": 4, "5199824-6215615": 0, "6215615-7231406": 0, "7231406-8247197": 0, "8247197-9262988": 1}}, "color_modes_top": {"RGB": 32}, "formats_top": {"JPEG": 25, "MPO": 7}} Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+---
+[LLM STEP 2: Payload Construction]
+Endpoint: http://localhost:8000/v1
+Model: Phi-3.5-mini-instruct-generic-cpu
+Message count: 2
+Payload chars: 1624
+max_tokens: 4096
+Payload kwargs: {}
+---
+[LLM STEP 3: Sending Request]
+Sending request to LLM...
+---
+[LLM DEBUG] REQUEST PAYLOAD: {"endpoint": "http://localhost:8000/v1", "model": "Phi-3.5-mini-instruct-generic-cpu", "messages": [{"role": "system", "content": "You are the brain of a seasoned LM scientist with powerful intuition encapsulated as an API responder. Your output is compact and correct json with only and all the required fields. Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}, {"role": "user", "content": "Given the following image collection metadata summary and the baseline_schema_criteria object, recommend normalization parameters for robust, reproducible ML preprocessing. Respond with only the JSON object. Metadata summary: {\"num_images\": 32, \"width\": {\"min\": 1448, \"max\": 5712, \"mean\": 2733.71875, \"mode\": 2573, \"histogram\": {\"1448-1981\": 6, \"1981-2514\": 0, \"2514-3047\": 19, \"3047-3580\": 0, \"3580-4113\": 6, \"4113-4646\": 0, \"4646-5179\": 0, \"5179-5712\": 1}}, \"height\": {\"min\": 1448, \"max\": 4284, \"mean\": 2043.0625, \"mode\": 1448, \"histogram\": {\"1448-1802\": 19, \"1802-2157\": 0, \"2157-2511\": 0, \"2511-2866\": 6, \"2866-3220\": 6, \"3220-3575\": 0, \"3575-3929\": 0, \"3929-4284\": 1}}, \"file_size\": {\"min\": 1136661, \"max\": 9262988, \"mean\": 2674053.0625, \"mode\": 9262988, \"histogram\": {\"1136661-2152451\": 16, \"2152451-3168242\": 8, \"3168242-4184033\": 3, \"4184033-5199824\": 4, \"5199824-6215615\": 0, \"6215615-7231406\": 0, \"7231406-8247197\": 0, \"8247197-9262988\": 1}}, \"color_modes_top\": {\"RGB\": 32}, \"formats_top\": {\"JPEG\": 25, \"MPO\": 7}} Baseline schema+criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}], "max_tokens": 4096, "kwargs": {}}
+[LLM STEP 4: Response Received]
+Elapsed: 22.73s
+Response chars: 874
+Response:
+ {
+  "baseline_marker": "v1",
+  "target_width": 2573,
+  "targetdict_height": 2043,
+  "resize_mode": "fit",
+  "color_mode": "RGB",
+  "quality": 90
+}
+
+Note: The quality parameter is set to the midpoint of the specified range (85-95), which is 90. The target_height is inferred from the mode of the height histogram, which is 2043. The target_width is taken from the mode of the width histogram, which is 2573. The background_color is set to white as specified. The resize_mode is set to "fit" to maintain the aspect ratio while resizing. The color_mode is set to "RGB" as it is the most common mode in the metadata summary. The quality is adjusted to a standard value within the given range for consistent image quality.
+
+```json
+{
+  "baseline_marker": "v1",
+  "target_width": 2573,
+  "target_height": 2043,
+  "resize_mode": "fit",
+  "color_mode": "RGB",
+  "quality": 90
+}
+```
+========================================
+[LLM DEBUG] RESPONSE PAYLOAD: {"elapsed": 22.726266860961914, "response_chars": 874, "response": " {\n  \"baseline_marker\": \"v1\",\n  \"target_width\": 2573,\n  \"targetdict_height\": 2043,\n  \"resize_mode\": \"fit\",\n  \"color_mode\": \"RGB\",\n  \"quality\": 90\n}\n\nNote: The quality parameter is set to the midpoint of the specified range (85-95), which is 90. The target_height is inferred from the mode of the height histogram, which is 2043. The target_width is taken from the mode of the width histogram, which is 2573. The background_color is set to white as specified. The resize_mode is set to \"fit\" to maintain the aspect ratio while resizing. The color_mode is set to \"RGB\" as it is the most common mode in the metadata summary. The quality is adjusted to a standard value within the given range for consistent image quality.\n\n```json\n{\n  \"baseline_marker\": \"v1\",\n  \"target_width\": 2573,\n  \"target_height\": 2043,\n  \"resize_mode\": \"fit\",\n  \"color_mode\": \"RGB\",\n  \"quality\": 90\n}\n```"}
+
+[LLM STEP 1: Prompt Preparation]
+System prompt: You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {
+  "baseline_marker": "v1",
+  "target_width": 1234,
+  "target_height": 1234,
+  "null ok": "example",
+  "resize_mode": "example",
+  "crop": "example",
+  "color_mode": "example",
+  "quality": 1234,
+  "crop": "example",
+  "none": "example",
+  "background_color": "example"
+}
+User prompt: Given the following image collection metadata summary: {"num_images": 32, "width": {"min": 1448, "max": 5712, "mean": 2733.71875, "mode": 2573, "histogram": {"1448-1981": 6, "1981-2514": 0, "2514-3047": 19, "3047-3580": 0, "3580-4113": 6, "4113-4646": 0, "4646-5179": 0, "5179-5712": 1}}, "height": {"min": 1448, "max": 4284, "mean": 2043.0625, "mode": 1448, "histogram": {"1448-1802": 19, "1802-2157": 0, "2157-2511": 0, "2511-2866": 6, "2866-3220": 6, "3220-3575": 0, "3575-3929": 0, "3929-4284": 1}}, "file_size": {"min": 1136661, "max": 9262988, "mean": 2674053.0625, "mode": 9262988, "histogram": {"1136661-2152451": 16, "2152451-3168242": 8, "3168242-4184033": 3, "4184033-5199824": 4, "5199824-6215615": 0, "6215615-7231406": 0, "7231406-8247197": 0, "8247197-9262988": 1}}, "color_modes_top": {"RGB": 32}, "formats_top": {"JPEG": 25, "MPO": 7}}. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+---
+[LLM STEP 2: Payload Construction]
+Endpoint: http://localhost:8000/v1
+Model: Phi-3.5-mini-instruct-generic-cpu
+Message count: 2
+Payload chars: 1625
+max_tokens: 4096
+Payload kwargs: {}
+---
+[LLM STEP 3: Sending Request]
+Sending request to LLM...
+---
+[LLM DEBUG] REQUEST PAYLOAD: {"endpoint": "http://localhost:8000/v1", "model": "Phi-3.5-mini-instruct-generic-cpu", "messages": [{"role": "system", "content": "You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {\n  \"baseline_marker\": \"v1\",\n  \"target_width\": 1234,\n  \"target_height\": 1234,\n  \"null ok\": \"example\",\n  \"resize_mode\": \"example\",\n  \"crop\": \"example\",\n  \"color_mode\": \"example\",\n  \"quality\": 1234,\n  \"crop\": \"example\",\n  \"none\": \"example\",\n  \"background_color\": \"example\"\n}"}, {"role": "user", "content": "Given the following image collection metadata summary: {\"num_images\": 32, \"width\": {\"min\": 1448, \"max\": 5712, \"mean\": 2733.71875, \"mode\": 2573, \"histogram\": {\"1448-1981\": 6, \"1981-2514\": 0, \"2514-3047\": 19, \"3047-3580\": 0, \"3580-4113\": 6, \"4113-4646\": 0, \"4646-5179\": 0, \"5179-5712\": 1}}, \"height\": {\"min\": 1448, \"max\": 4284, \"mean\": 2043.0625, \"mode\": 1448, \"histogram\": {\"1448-1802\": 19, \"1802-2157\": 0, \"2157-2511\": 0, \"2511-2866\": 6, \"2866-3220\": 6, \"3220-3575\": 0, \"3575-3929\": 0, \"3929-4284\": 1}}, \"file_size\": {\"min\": 1136661, \"max\": 9262988, \"mean\": 2674053.0625, \"mode\": 9262988, \"histogram\": {\"1136661-2152451\": 16, \"2152451-3168242\": 8, \"3168242-4184033\": 3, \"4184033-5199824\": 4, \"5199824-6215615\": 0, \"6215615-7231406\": 0, \"7231406-8247197\": 0, \"8247197-9262988\": 1}}, \"color_modes_top\": {\"RGB\": 32}, \"formats_top\": {\"JPEG\": 25, \"MPO\": 7}}. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}], "max_tokens": 4096, "kwargs": {}}
+
+[LLM STEP 1: Prompt Preparation]
+System prompt: You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {"baseline_marker":"v1","target_width":1234,"target_height":1234,"null ok":"example","resize_mode":"example","crop":"example","color_mode":"example","quality":1234,"none":"example","background_color":"example"}
+User prompt: Given the following image collection metadata summary: {"num_images":32,"width":{"min":1448,"max":5712,"mean":2733.71875,"mode":2573,"histogram":{"1448-1981":6,"1981-2514":0,"2514-3047":19,"3047-3580":0,"3580-4113":6,"4113-4646":0,"4646-5179":0,"5179-5712":1}},"height":{"min":1448,"max":4284,"mean":2043.0625,"mode":1448,"histogram":{"1448-1802":19,"1802-2157":0,"2157-2511":0,"2511-2866":6,"2866-3220":6,"3220-3575":0,"3575-3929":0,"3929-4284":1}},"file_size":{"min":1136661,"max":9262988,"mean":2674053.0625,"mode":9262988,"histogram":{"1136661-2152451":16,"2152451-3168242":8,"3168242-4184033":3,"4184033-5199824":4,"5199824-6215615":0,"6215615-7231406":0,"7231406-8247197":0,"8247197-9262988":1}},"color_modes_top":{"RGB":32},"formats_top":{"JPEG":25,"MPO":7}}. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+---
+[LLM STEP 2: Payload Construction]
+Endpoint: http://localhost:8000/v1
+Model: Phi-3.5-mini-instruct-generic-cpu
+Message count: 2
+Payload chars: 1476
+max_tokens: 4096
+Payload kwargs: {}
+---
+[LLM STEP 3: Sending Request]
+Sending request to LLM...
+---
+[LLM DEBUG] REQUEST PAYLOAD: {"endpoint": "http://localhost:8000/v1", "model": "Phi-3.5-mini-instruct-generic-cpu", "messages": [{"role": "system", "content": "You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {\"baseline_marker\":\"v1\",\"target_width\":1234,\"target_height\":1234,\"null ok\":\"example\",\"resize_mode\":\"example\",\"crop\":\"example\",\"color_mode\":\"example\",\"quality\":1234,\"none\":\"example\",\"background_color\":\"example\"}"}, {"role": "user", "content": "Given the following image collection metadata summary: {\"num_images\":32,\"width\":{\"min\":1448,\"max\":5712,\"mean\":2733.71875,\"mode\":2573,\"histogram\":{\"1448-1981\":6,\"1981-2514\":0,\"2514-3047\":19,\"3047-3580\":0,\"3580-4113\":6,\"4113-4646\":0,\"4646-5179\":0,\"5179-5712\":1}},\"height\":{\"min\":1448,\"max\":4284,\"mean\":2043.0625,\"mode\":1448,\"histogram\":{\"1448-1802\":19,\"1802-2157\":0,\"2157-2511\":0,\"2511-2866\":6,\"2866-3220\":6,\"3220-3575\":0,\"3575-3929\":0,\"3929-4284\":1}},\"file_size\":{\"min\":1136661,\"max\":9262988,\"mean\":2674053.0625,\"mode\":9262988,\"histogram\":{\"1136661-2152451\":16,\"2152451-3168242\":8,\"3168242-4184033\":3,\"4184033-5199824\":4,\"5199824-6215615\":0,\"6215615-7231406\":0,\"7231406-8247197\":0,\"8247197-9262988\":1}},\"color_modes_top\":{\"RGB\":32},\"formats_top\":{\"JPEG\":25,\"MPO\":7}}. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}], "max_tokens": 4096, "kwargs": {}}
+[LLM STEP 5: ERROR]
+Exception occurred during LLM request: Connection error.
+========================================
+
+[LLM STEP 1: Prompt Preparation]
+System prompt: You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {"baseline_marker":"v1","target_width":1234,"target_height":1234,"null ok":"example","resize_mode":"example","crop":"example","color_mode":"example","quality":1234,"none":"example","background_color":"example"}
+User prompt: Given the following image collection metadata summary: num_images=32, width.min=1448, width.max=5712, width.mean=2733.71875, width.mode=2573, width.histogram.1448-1981=6, width.histogram.1981-2514=0, width.histogram.2514-3047=19, width.histogram.3047-3580=0, width.histogram.3580-4113=6, width.histogram.4113-4646=0, width.histogram.4646-5179=0, width.histogram.5179-5712=1, height.min=1448, height.max=4284, height.mean=2043.0625, height.mode=1448, height.histogram.1448-1802=19, height.histogram.1802-2157=0, height.histogram.2157-2511=0, height.histogram.2511-2866=6, height.histogram.2866-3220=6, height.histogram.3220-3575=0, height.histogram.3575-3929=0, height.histogram.3929-4284=1, file_size.min=1136661, file_size.max=9262988, file_size.mean=2674053.0625, file_size.mode=9262988, file_size.histogram.1136661-2152451=16, file_size.histogram.2152451-3168242=8, file_size.histogram.3168242-4184033=3, file_size.histogram.4184033-5199824=4, file_size.histogram.5199824-6215615=0, file_size.histogram.6215615-7231406=0, file_size.histogram.7231406-8247197=0, file_size.histogram.8247197-9262988=1, color_modes_top.RGB=32, formats_top.JPEG=25, formats_top.MPO=7. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+---
+[LLM STEP 2: Payload Construction]
+Endpoint: http://localhost:8000/v1
+Model: Phi-3.5-mini-instruct-generic-cpu
+Message count: 2
+Payload chars: 1876
+max_tokens: 4096
+Payload kwargs: {}
+---
+[LLM STEP 3: Sending Request]
+Sending request to LLM...
+---
+[LLM DEBUG] REQUEST PAYLOAD: {"endpoint": "http://localhost:8000/v1", "model": "Phi-3.5-mini-instruct-generic-cpu", "messages": [{"role": "system", "content": "You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {\"baseline_marker\":\"v1\",\"target_width\":1234,\"target_height\":1234,\"null ok\":\"example\",\"resize_mode\":\"example\",\"crop\":\"example\",\"color_mode\":\"example\",\"quality\":1234,\"none\":\"example\",\"background_color\":\"example\"}"}, {"role": "user", "content": "Given the following image collection metadata summary: num_images=32, width.min=1448, width.max=5712, width.mean=2733.71875, width.mode=2573, width.histogram.1448-1981=6, width.histogram.1981-2514=0, width.histogram.2514-3047=19, width.histogram.3047-3580=0, width.histogram.3580-4113=6, width.histogram.4113-4646=0, width.histogram.4646-5179=0, width.histogram.5179-5712=1, height.min=1448, height.max=4284, height.mean=2043.0625, height.mode=1448, height.histogram.1448-1802=19, height.histogram.1802-2157=0, height.histogram.2157-2511=0, height.histogram.2511-2866=6, height.histogram.2866-3220=6, height.histogram.3220-3575=0, height.histogram.3575-3929=0, height.histogram.3929-4284=1, file_size.min=1136661, file_size.max=9262988, file_size.mean=2674053.0625, file_size.mode=9262988, file_size.histogram.1136661-2152451=16, file_size.histogram.2152451-3168242=8, file_size.histogram.3168242-4184033=3, file_size.histogram.4184033-5199824=4, file_size.histogram.5199824-6215615=0, file_size.histogram.6215615-7231406=0, file_size.histogram.7231406-8247197=0, file_size.histogram.8247197-9262988=1, color_modes_top.RGB=32, formats_top.JPEG=25, formats_top.MPO=7. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}], "max_tokens": 4096, "kwargs": {}}
+[LLM STEP 4: Response Received]
+Elapsed: 18.01s
+Response chars: 652
+Response:
+ {"baseline_marker":"v1","target_width":2733,"target_height":1448,"null ok":"example","resize_mode":"fit","crop":"center","color_mode":"RGB","quality":88,"none":"example","background_color":"#FFFFFF"}
+
+Note: The "quality" value is chosen within the specified range (85-95) and rounded to the nearest whole number (88) for consistency. The "target_width" and "target_height" are set to the mean width and height, respectively, as per the provided statistics. The "background_color" is set to white as commonly used for image preprocessing. The exact values for "null ok" and "example" are placeholders as they were not specified in the original request.
+========================================
+[LLM DEBUG] RESPONSE PAYLOAD: {"elapsed": 18.01355814933777, "response_chars": 652, "response": " {\"baseline_marker\":\"v1\",\"target_width\":2733,\"target_height\":1448,\"null ok\":\"example\",\"resize_mode\":\"fit\",\"crop\":\"center\",\"color_mode\":\"RGB\",\"quality\":88,\"none\":\"example\",\"background_color\":\"#FFFFFF\"}\n\nNote: The \"quality\" value is chosen within the specified range (85-95) and rounded to the nearest whole number (88) for consistency. The \"target_width\" and \"target_height\" are set to the mean width and height, respectively, as per the provided statistics. The \"background_color\" is set to white as commonly used for image preprocessing. The exact values for \"null ok\" and \"example\" are placeholders as they were not specified in the original request."}
+
+[LLM STEP 1: Prompt Preparation]
+System prompt: You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {"baseline_marker":"v1","target_width":1234,"target_height":1234,"null ok":"example","resize_mode":"example","crop":"example","color_mode":"example","quality":1234,"none":"example","background_color":"example"}
+User prompt: Given the following image collection metadata summary: num_images=32, width.min=1448, width.max=5712, width.mean=2733.71875, width.mode=2573, width.histogram.1448-1981=6, width.histogram.1981-2514=0, width.histogram.2514-3047=19, width.histogram.3047-3580=0, width.histogram.3580-4113=6, width.histogram.4113-4646=0, width.histogram.4646-5179=0, width.histogram.5179-5712=1, height.min=1448, height.max=4284, height.mean=2043.0625, height.mode=1448, height.histogram.1448-1802=19, height.histogram.1802-2157=0, height.histogram.2157-2511=0, height.histogram.2511-2866=6, height.histogram.2866-3220=6, height.histogram.3220-3575=0, height.histogram.3575-3929=0, height.histogram.3929-4284=1, file_size.min=1136661, file_size.max=9262988, file_size.mean=2674053.0625, file_size.mode=9262988, file_size.histogram.1136661-2152451=16, file_size.histogram.2152451-3168242=8, file_size.histogram.3168242-4184033=3, file_size.histogram.4184033-5199824=4, file_size.histogram.5199824-6215615=0, file_size.histogram.6215615-7231406=0, file_size.histogram.7231406-8247197=0, file_size.histogram.8247197-9262988=1, color_modes_top.RGB=32, formats_top.JPEG=25, formats_top.MPO=7. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF
+---
+[LLM STEP 2: Payload Construction]
+Endpoint: http://localhost:8000/v1
+Model: Phi-3.5-mini-instruct-generic-cpu
+Message count: 2
+Payload chars: 1876
+max_tokens: 4096
+Payload kwargs: {}
+---
+[LLM STEP 3: Sending Request]
+Sending request to LLM...
+---
+[LLM DEBUG] REQUEST PAYLOAD: {"endpoint": "http://localhost:8000/v1", "model": "Phi-3.5-mini-instruct-generic-cpu", "messages": [{"role": "system", "content": "You are a seasoned LM scientist with powerful intuition, but you respond as an API. Your output must be a compact, correct JSON object matching the provided one-short example: {\"baseline_marker\":\"v1\",\"target_width\":1234,\"target_height\":1234,\"null ok\":\"example\",\"resize_mode\":\"example\",\"crop\":\"example\",\"color_mode\":\"example\",\"quality\":1234,\"none\":\"example\",\"background_color\":\"example\"}"}, {"role": "user", "content": "Given the following image collection metadata summary: num_images=32, width.min=1448, width.max=5712, width.mean=2733.71875, width.mode=2573, width.histogram.1448-1981=6, width.histogram.1981-2514=0, width.histogram.2514-3047=19, width.histogram.3047-3580=0, width.histogram.3580-4113=6, width.histogram.4113-4646=0, width.histogram.4646-5179=0, width.histogram.5179-5712=1, height.min=1448, height.max=4284, height.mean=2043.0625, height.mode=1448, height.histogram.1448-1802=19, height.histogram.1802-2157=0, height.histogram.2157-2511=0, height.histogram.2511-2866=6, height.histogram.2866-3220=6, height.histogram.3220-3575=0, height.histogram.3575-3929=0, height.histogram.3929-4284=1, file_size.min=1136661, file_size.max=9262988, file_size.mean=2674053.0625, file_size.mode=9262988, file_size.histogram.1136661-2152451=16, file_size.histogram.2152451-3168242=8, file_size.histogram.3168242-4184033=3, file_size.histogram.4184033-5199824=4, file_size.histogram.5199824-6215615=0, file_size.histogram.6215615-7231406=0, file_size.histogram.7231406-8247197=0, file_size.histogram.8247197-9262988=1, color_modes_top.RGB=32, formats_top.JPEG=25, formats_top.MPO=7. You recommend image normalization parameters for robust, reproducible, unbiased ML photo preprocessing using the following schema/criteria: baseline_marker:str:v1|target_width:int|target_height:int|null ok|resize_mode:str:fit|crop|color_mode:str:commonest|quality:int:85-95|crop:str:center|none|background_color:str:#FFFFFF"}], "max_tokens": 4096, "kwargs": {}}
+[LLM STEP 4: Response Received]
+Elapsed: 17.88s
+Response chars: 652
+Response:
+ {"baseline_marker":"v1","target_width":2733,"target_height":1448,"null ok":"example","resize_mode":"fit","crop":"center","color_mode":"RGB","quality":88,"none":"example","background_color":"#FFFFFF"}
+
+Note: The "quality" value is chosen within the specified range (85-95) and rounded to the nearest whole number (88) for consistency. The "target_width" and "target_height" are set to the mean width and height, respectively, as per the provided statistics. The "background_color" is set to white as commonly used for image preprocessing. The exact values for "null ok" and "example" are placeholders as they were not specified in the original request.
+========================================
+[LLM DEBUG] RESPONSE PAYLOAD: {"elapsed": 17.882373809814453, "response_chars": 652, "response": " {\"baseline_marker\":\"v1\",\"target_width\":2733,\"target_height\":1448,\"null ok\":\"example\",\"resize_mode\":\"fit\",\"crop\":\"center\",\"color_mode\":\"RGB\",\"quality\":88,\"none\":\"example\",\"background_color\":\"#FFFFFF\"}\n\nNote: The \"quality\" value is chosen within the specified range (85-95) and rounded to the nearest whole number (88) for consistency. The \"target_width\" and \"target_height\" are set to the mean width and height, respectively, as per the provided statistics. The \"background_color\" is set to white as commonly used for image preprocessing. The exact values for \"null ok\" and \"example\" are placeholders as they were not specified in the original request."}

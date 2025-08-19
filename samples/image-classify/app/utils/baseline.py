@@ -14,20 +14,47 @@ from collections import Counter
 
 from .llm import llm_complete
 from .config import BASELINE_USER_PROMPT, BASELINE_SYSTEM_PROMPT, BASELINE_SCHEMA_CRITERIA, BASELINE_SCHEMA_STATIC
-def generate_llm_system_prompt():
+
+# Try to import allowed_color_modes from config if present
+try:
+	from .config import ALLOWED_COLOR_MODES
+except ImportError:
+	ALLOWED_COLOR_MODES = None
+
+def build_one_shot_example():
 	"""
-	Generate the system prompt for the LLM using the configured system prompt and baseline schema+criteria (compact string).
+	Dynamically build a one-shot JSON example from the schema criteria for use in the system prompt.
 	"""
-	# Use the new compact schema+criteria string directly
-	# Remove static fields from schema+criteria string for LLM
 	static_fields = [
 		'preserve_aspect_ratio', 'strip_metadata', 'timestamp', 'output_format'
 	]
-	# Remove static fields from the schema string
 	schema_parts = BASELINE_SCHEMA_CRITERIA.split('|')
 	filtered_parts = [p for p in schema_parts if not any(f in p for f in static_fields)]
-	filtered_schema = '|'.join(filtered_parts)
-	prompt = f"{BASELINE_SYSTEM_PROMPT} Baseline schema+criteria: {filtered_schema}"
+	example_dict = {}
+	for part in filtered_parts:
+		field, *rest = part.split(':')
+		field = field.strip()
+		typ = rest[0].strip() if rest else 'str'
+		# Use plausible example values
+		if field == 'baseline_marker':
+			val = "v1"
+		elif typ == 'int':
+			val = 1234
+		elif typ == 'str':
+			val = "example"
+		else:
+			val = None
+		example_dict[field] = val
+	# Output compact single-line JSON
+	return json.dumps(example_dict, separators=(",", ":"))
+
+def generate_llm_system_prompt():
+	"""
+	Generate the system prompt for the LLM using the configured system prompt, baseline schema+criteria, and a one-shot example.
+	"""
+	filtered_schema = get_filtered_schema()
+	example_json = build_one_shot_example()
+	prompt = BASELINE_SYSTEM_PROMPT.format(schema_criteria=filtered_schema, one_shot_example=example_json)
 	return prompt
 
 
@@ -69,28 +96,32 @@ def marshal_metadata_for_llm(metadata_csv_path):
 		'color_modes_top': top_n(color_mode_counter),
 		'formats_top': top_n(format_counter)
 	}
-	return json.dumps(summary)
+	# Output as a compact, human-readable, non-JSON string for LLM compatibility
+	def flatten(d, prefix=""):
+		items = []
+		for k, v in d.items():
+			if isinstance(v, dict):
+				items.extend(flatten(v, f"{prefix}{k}.").items())
+			else:
+				items.append((f"{prefix}{k}", v))
+		return dict(items)
+	flat = flatten(summary)
+	return ", ".join(f"{k}={v}" for k, v in flat.items())
 
 def generate_llm_prompt(metadata_summary):
 	"""
 	Generate the user prompt for the LLM using the template from config and including the baseline schema+criteria (compact string).
 	"""
-	# Remove static fields from schema+criteria string for LLM
+	filtered_schema = get_filtered_schema()
+	prompt = BASELINE_USER_PROMPT.strip().format(metadata_summary=metadata_summary, schema_criteria=filtered_schema)
+	return prompt
+def get_filtered_schema():
 	static_fields = [
 		'preserve_aspect_ratio', 'strip_metadata', 'timestamp', 'output_format'
 	]
 	schema_parts = BASELINE_SCHEMA_CRITERIA.split('|')
 	filtered_parts = [p for p in schema_parts if not any(f in p for f in static_fields)]
-	filtered_schema = '|'.join(filtered_parts)
-	prompt = BASELINE_USER_PROMPT.strip()
-	# If the template contains {metadata_summary}, substitute it; else, append summary at the end.
-	if '{metadata_summary}' in prompt:
-		prompt = prompt.replace('{metadata_summary}', metadata_summary)
-	else:
-		prompt = f"{prompt} Metadata summary: {metadata_summary}"
-	# Add filtered schema+criteria at the end
-	prompt = f"{prompt} Baseline schema+criteria: {filtered_schema}"
-	return prompt
+	return '|'.join(filtered_parts)
 
 def call_llm_completion(prompt):
 	"""
@@ -108,38 +139,63 @@ def validate_baseline_params(params):
 	"""
 	if not isinstance(params, dict):
 		raise ValueError("Baseline params must be a dict.")
-	# __baseline_marker__
-	marker = params.get('baseline_marker')
-	if marker != 'v1':
-		raise ValueError(f"baseline_marker must be 'v1', got {marker}")
-	# target_width
-	w = params.get('target_width')
-	if not (isinstance(w, int) and 100 <= w <= 10000):
-		raise ValueError(f"target_width {w} is out of bounds (100-10000).")
-	# target_height (can be int or None)
-	h = params.get('target_height')
-	if h is not None and not (isinstance(h, int) and 100 <= h <= 10000):
-		raise ValueError(f"target_height {h} is not None or out of bounds (100-10000).")
-	# resize_mode
-	resize_mode = params.get('resize_mode')
-	if resize_mode not in {'fit', 'crop'}:
-		raise ValueError(f"resize_mode {resize_mode} is not supported.")
-	# color_mode
-	mode = params.get('color_mode')
-	if mode not in {'RGB', 'L'}:
-		raise ValueError(f"color_mode {mode} is not supported.")
-	# quality (for JPEG)
-	q = params.get('quality')
-	if not (isinstance(q, int) and 1 <= q <= 100):
-		raise ValueError(f"quality {q} is out of bounds (1-100).")
-	# crop
-	crop = params.get('crop')
-	if crop not in {'center', 'none'}:
-		raise ValueError(f"crop {crop} is not supported.")
-	# background_color
-	bg = params.get('background_color')
-	if not (isinstance(bg, str) and bg.startswith('#') and len(bg) == 7):
-		raise ValueError(f"background_color {bg} is not a valid hex color.")
+	# Parse schema criteria for dynamic validation
+	schema = {}
+	for part in BASELINE_SCHEMA_CRITERIA.split('|'):
+		if not part.strip():
+			continue
+		# Format: field:type[:allowed_values]
+		field, *rest = part.split(':')
+		if not rest:
+			continue
+		typ = rest[0]
+		allowed = rest[1] if len(rest) > 1 else None
+		schema[field.strip()] = {'type': typ.strip(), 'allowed': allowed.strip() if allowed else None}
+	for field, spec in schema.items():
+		if field not in params:
+			# Allow missing/optional fields if allowed value says 'null ok' or similar
+			if spec['allowed'] and 'null' in spec['allowed']:
+				continue
+			raise ValueError(f"Missing required field: {field}")
+		value = params[field]
+		typ = spec['type']
+		allowed = spec['allowed']
+		# Type checks
+		if typ == 'int':
+			if value is not None and not isinstance(value, int):
+				raise ValueError(f"{field} must be int or null, got {type(value)}")
+		elif typ == 'str':
+			if value is not None and not isinstance(value, str):
+				raise ValueError(f"{field} must be str or null, got {type(value)}")
+		# Special handling for color_mode with allowed list from config
+		if field == 'color_mode' and ALLOWED_COLOR_MODES is not None:
+			if value not in ALLOWED_COLOR_MODES:
+				raise ValueError(f"color_mode {value} is not in allowed set {ALLOWED_COLOR_MODES}")
+			continue
+		# Allowed values/range checks (if specified)
+		if allowed:
+			allowed_lc = allowed.lower()
+			# If 'commonest' in allowed, accept any string value (LLM is supposed to pick the most common)
+			if 'commonest' in allowed_lc:
+				continue
+			if 'null' in allowed_lc and value is None:
+				continue
+			if '-' in allowed and typ == 'int':
+				# Range, e.g. 85-95
+				try:
+					minv, maxv = [int(x) for x in allowed.split('-')]
+					if not (minv <= value <= maxv):
+						raise ValueError(f"{field} {value} is out of bounds ({minv}-{maxv})")
+				except Exception:
+					pass
+			elif '|' in allowed:
+				# Multiple allowed values, e.g. center|none
+				allowed_set = set(x.strip() for x in allowed.split('|'))
+				if str(value) not in allowed_set:
+					raise ValueError(f"{field} {value} is not in allowed set {allowed_set}")
+			elif allowed and value is not None and allowed not in str(value):
+				# Simple substring match for hints
+				raise ValueError(f"{field} {value} does not match allowed: {allowed}")
 	return True
 
 def establish_baseline_from_metadata(metadata_csv_path):
@@ -153,19 +209,20 @@ def establish_baseline_from_metadata(metadata_csv_path):
 	try:
 		llm_response = call_llm_completion((user_prompt, system_prompt))
 		logging.debug(f"[baseline.py] Raw LLM response: {llm_response}")
-		# Extract the first JSON object from the response and select the one with baseline_marker == 'v1'
-		import json
+		# Robustly extract all JSON objects from the response and select the one with baseline_marker == 'v1'
+		import json, re
 		marker = "baseline_marker"
 		params = None
-		start = llm_response.find('{')
-		end = llm_response.rfind('}')
-		if start != -1 and end != -1 and end > start:
+		# Find all JSON objects in the response (including those in code blocks)
+		json_candidates = re.findall(r'\{[\s\S]*?\}', llm_response)
+		for candidate in json_candidates:
 			try:
-				obj = json.loads(llm_response[start:end+1])
+				obj = json.loads(candidate)
 				if isinstance(obj, dict) and obj.get(marker) == "v1":
 					params = obj
+					break
 			except Exception:
-				pass
+				continue
 		if not params:
 			raise ValueError(f"No JSON object with {marker} == 'v1' found in LLM response.")
 		validate_baseline_params(params)
