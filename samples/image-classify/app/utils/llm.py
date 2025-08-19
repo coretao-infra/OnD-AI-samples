@@ -15,7 +15,7 @@
 import openai
 import logging
 import time
-from .config import LLM_ENDPOINT, LLM_API_KEY, LLM_ALIAS, LLM_VARIANT, DEFAULT_META_PROMPT, LLM_LOG_PATH, LLM_BACKEND, LLM_LOG_LEVEL
+from .config import LLM_ENDPOINT, LLM_API_KEY, LLM_ALIAS, LLM_VARIANT, DEFAULT_META_PROMPT, LLM_LOG_PATH, LLM_BACKEND, LLM_LOG_LEVEL, LLM_MAX_TOKENS
 
 _client = None
 _model = None
@@ -69,6 +69,7 @@ def llm_complete(messages, system_prompt=None, **kwargs):
 		msgs = [{"role": "system", "content": prompt_to_use}] + msgs
 	payload_len = sum(len(m.get('content', '')) for m in msgs)
 	payload_count = len(msgs)
+	# Always pass max_tokens from config to the OpenAI API call, do not inject into kwargs
 	# Step-by-step, readable logging for all major steps (all levels), and JSONL payloads at DEBUG
 	import os
 	os.makedirs(os.path.dirname(LLM_LOG_PATH), exist_ok=True)
@@ -96,6 +97,7 @@ def llm_complete(messages, system_prompt=None, **kwargs):
 		f"\nModel: {_model}"
 		f"\nMessage count: {payload_count}"
 		f"\nPayload chars: {payload_len}"
+		f"\nmax_tokens: {LLM_MAX_TOKENS}"
 		f"\nPayload kwargs: {kwargs}"
 		f"\n---"
 	)
@@ -118,6 +120,7 @@ def llm_complete(messages, system_prompt=None, **kwargs):
 			'endpoint': LLM_ENDPOINT,
 			'model': _model,
 			'messages': msgs,
+			'max_tokens': LLM_MAX_TOKENS,
 			'kwargs': kwargs
 		}
 		log_to_file('[LLM DEBUG] REQUEST PAYLOAD: ' + json.dumps(request_payload, ensure_ascii=False))
@@ -127,6 +130,7 @@ def llm_complete(messages, system_prompt=None, **kwargs):
 		response = _client.chat.completions.create(
 			model=_model,
 			messages=msgs,
+			max_tokens=LLM_MAX_TOKENS,
 			**kwargs
 		)
 		elapsed = time.time() - start_time

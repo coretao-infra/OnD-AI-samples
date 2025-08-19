@@ -85,6 +85,8 @@ try:
 	logging.info(f"LLM_LOG_LEVEL: {LLM_LOG_LEVEL}")
 	DEFAULT_META_PROMPT = get_config('llm', 'default_meta_prompt', required=True)
 	logging.info(f"DEFAULT_META_PROMPT: {DEFAULT_META_PROMPT}")
+	LLM_MAX_TOKENS = int(get_config('llm', 'max_tokens', required=True))
+	logging.info(f"LLM_MAX_TOKENS: {LLM_MAX_TOKENS}")
 	NORMALIZE_INPUT_DIR = get_config('normalize', 'input_dir', required=True)
 	logging.info(f"NORMALIZE_INPUT_DIR: {NORMALIZE_INPUT_DIR}")
 	NORMALIZE_META_OUT = get_config('normalize', 'meta_out', required=True)
@@ -101,6 +103,16 @@ try:
 	logging.info(f"BASELINE_USER_PROMPT: {BASELINE_USER_PROMPT}")
 	BASELINE_SYSTEM_PROMPT = get_config('baseline', 'baseline_system_prompt', required=True)
 	logging.info(f"BASELINE_SYSTEM_PROMPT: {BASELINE_SYSTEM_PROMPT}")
+	BASELINE_SCHEMA_CRITERIA = get_config('baseline', 'baseline_schema_criteria', required=True)
+	logging.info(f"BASELINE_SCHEMA_CRITERIA: {BASELINE_SCHEMA_CRITERIA}")
+	import ast
+	_static_raw = get_config('baseline', 'baseline_schema_static', required=True)
+	try:
+		BASELINE_SCHEMA_STATIC = ast.literal_eval(_static_raw)
+		logging.info(f"BASELINE_SCHEMA_STATIC: {BASELINE_SCHEMA_STATIC}")
+	except Exception as e:
+		logging.error(f"Failed to parse BASELINE_SCHEMA_STATIC: {e}")
+		raise SystemExit(f"[config.py] Failed to parse BASELINE_SCHEMA_STATIC: {e}")
 except Exception as e:
 	logging.error(f"Configuration error: {e}")
 	raise SystemExit(f"[config.py] Configuration error: {e}")

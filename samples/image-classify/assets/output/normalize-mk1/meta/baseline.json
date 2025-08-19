@@ -1,5 +1,14 @@
 {
-  "max_width": 5712,
+  "baseline_marker": "v1",
+  "target_width": 2573,
+  "target_height": null,
+  "resize_mode": "fit",
   "color_mode": "RGB",
-  "quality": 95
+  "quality": 90,
+  "preserve_aspect_ratio": true,
+  "crop": "center",
+  "strip_metadata": true,
+  "background_color": "#FFFFFF",
+  "timestamp": "2023-04-01T12:00:00Z",
+  "output_format": "JPEG"
 }
