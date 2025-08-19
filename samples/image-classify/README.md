@@ -1,3 +1,34 @@
+# Major Improvements (2025-08)
+
+## Configuration-Driven Normalization Pipeline
+- All normalization logic, prompt structure, and allowed values are controlled via `app/config/config.ini`.
+- Prompts for the LLM are fully template-driven, with placeholders for schema, metadata summary, and one-shot examples.
+- To change allowed color modes, edit `allowed_color_modes` in the `[normalize]` section.
+- Validation logic enforces all config constraints, including allowed color modes and value ranges.
+- The pipeline is robust to LLM quirks (e.g., outputting the actual most common color mode instead of the literal string "commonest").
+- To extend validation to other fields, add new allowed_* entries in config and update the schema accordingly.
+
+## Example: Allowed Color Modes
+```ini
+[normalize]
+allowed_color_modes = RGB, L, CMYK
+```
+
+## Example: Baseline Output
+```json
+{
+  "baseline_marker": "v1",
+  "target_width": 2733,
+  "target_height": 1448,
+  "color_mode": "RGB",
+  ...
+}
+```
+
+## Extensibility
+- All changes are made by editing the config, not the code.
+- The config pattern can be extended to any other field (e.g., allowed formats, resize modes).
+
 
 # Windows On-Device AI Lab: Image Classifier (ONNX Runtime)
 
