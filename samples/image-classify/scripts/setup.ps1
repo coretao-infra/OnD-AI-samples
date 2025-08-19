@@ -1,3 +1,4 @@
+
 # PowerShell setup script for the image-classify sample
 # Sets up a single Python environment for the entire app (including scripts)
 
@@ -16,6 +17,10 @@ if (Test-Path $activatePath) {
 	Write-Host "Activation script not found: $activatePath"
 }
 
+# Upgrade pip, setuptools, wheel for best compatibility
+Write-Host "Upgrading pip, setuptools, and wheel..."
+python -m pip install --upgrade pip setuptools wheel
+
 if (Test-Path $reqFile) {
 	Write-Host "Installing required packages from $reqFile..."
 	pip install -r $reqFile
@@ -23,5 +28,14 @@ if (Test-Path $reqFile) {
 	Write-Host "$reqFile not found. Please create it with your dependencies."
 }
 
-Write-Host "Setup complete. To activate the environment later, run:"
+
+
+Write-Host "\nSetup complete. To activate the environment later, run:"
 Write-Host $activatePath
+
+Write-Host "\nTo run the canonical metadata extraction script, use:"
+Write-Host "python -m scripts.normalize --profile <profile>"
+Write-Host "\nIf you encounter import errors, try:"
+Write-Host "$env:PYTHONPATH='.'; python -m scripts.normalize --profile <profile>"
+
+Write-Host "\nFor more info, see README.md."
