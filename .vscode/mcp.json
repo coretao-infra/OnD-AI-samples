@@ -1,3 +1,12 @@
+// This file configures MCP servers for use in VS Code.
+// To start the Image Metadata MCP server for local testing:
+// 1. Open the Command Palette (Ctrl+Shift+P) in VS Code.
+// 2. Run the command: "MCP: Start Server" (or similar, depending on your MCP extension).
+// 3. Select the "ImageMetadata" server defined below.
+//    - This will launch the server using the specified Python environment and arguments.
+// 4. The server will run in the background and can be used for metadata extraction/testing.
+//
+// You can edit this file to add or modify MCP server definitions as needed.
 {
   "servers": {
     // Local Image Metadata MCP Server
