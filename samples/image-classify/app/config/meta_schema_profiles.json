@@ -1,0 +1,23 @@
+{
+  "fields": [
+    { "name": "filename",        "profiles": ["rich"] },
+    { "name": "relative_path",    "profiles": ["rich"] },
+    { "name": "parent_folder",    "profiles": ["rich"] },
+    { "name": "format",           "profiles": ["rich", "basic", "minimal"] },
+    { "name": "width",            "profiles": ["rich", "basic", "minimal"] },
+    { "name": "height",           "profiles": ["rich", "basic", "minimal"] },
+    { "name": "aspect_ratio",     "profiles": ["rich", "basic"] },
+    { "name": "mode",             "profiles": ["rich", "basic", "minimal"] },
+    { "name": "bit_depth",        "profiles": ["rich", "basic"] },
+    { "name": "orientation",      "profiles": ["rich", "basic"] },
+    { "name": "dpi_x",            "profiles": ["rich"] },
+    { "name": "dpi_y",            "profiles": ["rich"] },
+    { "name": "file_size",        "profiles": ["rich", "basic", "minimal"] },
+    { "name": "created_time",     "profiles": ["rich"] },
+    { "name": "modified_time",    "profiles": ["rich"] },
+    { "name": "compression",      "profiles": ["rich", "basic"] },
+    { "name": "exif_make",        "profiles": ["rich", "basic"] },
+    { "name": "exif_model",       "profiles": ["rich", "basic"] },
+    { "name": "exif_datetime",    "profiles": ["rich"] }
+  ]
+}

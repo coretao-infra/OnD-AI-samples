@@ -30,6 +30,11 @@ _This document describes the normalization workflow for preparing image datasets
 - Prepare a summary for LLM input (e.g., "Most images are 3000x2000, file sizes range 1-4MB, 90% are JPEG, ...").
 
 ### 3. LLM-Assisted Baseline Selection (Mark 1)
+- Use a self-initializing, config-driven LLM module (see `llm.py`) that:
+  - Reads all LLM connection/model details from `config.ini` ([llm] section).
+  - Initializes with a default meta prompt (`default_meta_prompt` in `[llm]`), which can be overridden at runtime.
+  - The LLM module generically manages and prepends a meta/system prompt as configured or set at runtime, for any context or use case.
+  - Prepends the meta/system prompt to all LLM chat requests for context control.
 - Use Foundry Local LLM to:
   - Review the metadata summary.
   - Recommend normalization parameters that maximize consistency while minimizing unnecessary loss (e.g., "resize only images above 2500px wide to 2048px, set JPEG quality to 85, ...").
@@ -56,6 +61,21 @@ _This document describes the normalization workflow for preparing image datasets
 - Prepare LLM prompt and integrate with Foundry Local.
 - Build normalization pipeline.
 - Test and validate output quality.
+
+
+## Configuration Structure (as of Mark 1)
+
+```ini
+[llm]
+alias = phi-3.5-mini
+variant = instruct-generic-gpu
+endpoint = http://localhost:8000/v1
+api_key =
+default_meta_prompt = "You always prepend a warning in your responses that the default prompt is active."
+
+[normalize]
+normalize_meta_prompt = "You are a seasoned LM scientist's brain with powerful intuition encapsulated as an API responder."
+```
 
 # Phase 2: Mark 2 - Semantic-Aware Normalization
 
