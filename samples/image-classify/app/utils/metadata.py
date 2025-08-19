@@ -1,3 +1,17 @@
+
+# Canonical function to list all available profiles and their fields
+def get_all_profiles():
+    """
+    Return a dictionary mapping profile names to lists of field names, based on the canonical schema.
+    """
+    schema_path = NORMALIZE_SCHEMA_PATH
+    with open(schema_path, 'r', encoding='utf-8') as f:
+        schema = json.load(f)
+    profiles = {}
+    for field in schema['fields']:
+        for prof in field['profiles']:
+            profiles.setdefault(prof, []).append(field['name'])
+    return profiles
 import os
 import json
 from PIL import Image
