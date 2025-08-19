@@ -1,0 +1,11 @@
+{
+  "servers": {
+    // Local Image Metadata MCP Server
+    "ImageMetadata": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/samples/image-classify/.venv/Scripts/python.exe",
+      "args": ["-m", "images_mcp.metadata_service"],
+      "cwd": "${workspaceFolder}/samples/image-classify"
+    }
+  }
+}
