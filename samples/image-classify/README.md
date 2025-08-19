@@ -1,4 +1,34 @@
+
 # Windows On-Device AI Lab: Image Classifier (ONNX Runtime)
+
+## Project Context & Normalization Workflow
+
+This project includes a robust workflow for preparing image datasets for AI/ML classification. The normalization process is designed to:
+- Analyze the actual distribution of image properties (resolution, compression, file size, color mode, etc.)
+- Use an LLM (via Foundry Local) to recommend optimal normalization parameters that maximize consistency while minimizing unnecessary loss of richness
+- Normalize images accordingly and randomize output filenames to remove source bias
+
+See `app/scripts/NORMALIZATION_DESIGN.md` for detailed objectives and design, including future plans for LLM-assisted cropping and enrichment.
+
+### Minimal Project Structure
+
+```text
+image-classify/
+├── app/
+│   ├── scripts/
+│   │   ├── NORMALIZATION_DESIGN.md
+│   │   └── normalize.py
+│   ├── routes/
+│   ├── templates/
+│   └── utils/
+├── assets/
+│   ├── input/      # Raw images
+│   ├── output/     # Normalized images
+│   └── web/        # (Optional) Web assets
+├── README.md
+└── ...
+```
+
 
 This lab builds a small desktop or CLI tool that classifies images with a local ONNX model (e.g., MobileNetV2 or ResNet50). It runs entirely on-device and can optionally use your GPU via DirectML on Windows.
 
