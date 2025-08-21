@@ -1,4 +1,5 @@
 # llm.py - Utilities for local LLM inferencing via Foundry Local
+# this module is more and more growing to be a robutst but always-simple drop-in LLM library specialized to abstract the complexities and pecularities of Foundry Local.
 #
 # This module provides functions to interact with locally hosted language models
 # using the Foundry Local SDK and OpenAI-compatible API. It can be used to:
@@ -7,8 +8,6 @@
 #   3 Send prompts (such as metadata summaries) to the LLM for recommendations
 #   4 Integrate LLM responses into the normalization pipeline
 #
-
-
 
 # llm.py - Canonical, DRY, atomic, self-initializing LLM interface for Foundry Local
 
