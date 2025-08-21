@@ -208,3 +208,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+/samples/image-classify/assets/input/img
+/samples/image-classify/assets/output/normalize-mk1
+/samples/image-classify/assets/output/normalize-mk1/img
+/samples/image-classify/assets/output/normalize-mk1/meta
