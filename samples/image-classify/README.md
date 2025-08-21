@@ -169,3 +169,18 @@ Suggested flags (implement as appropriate in your app.py)
 - Integrate LLM-assisted cropping and optional background padding logic.
 - Strip metadata from output images and enforce output format conversion.
 - Enhance logging and reporting of normalization statistics.
+
+## Phase 2: Vision-Enabled Normalization (Mark 2)
+In addition to the basic Mark 1 pipeline, leverage vision models and image analysis to further refine normalization:
+
+- Straighten and deskew images by detecting and aligning to the majority orientation.
+- Detect primary subjects or objects (e.g., via object detection or saliency mapping) and compute aggregate bounding boxes.
+- Crop images tightly around detected content to remove excess background before resizing or compression.
+- Re-center cropped subjects within the normalized frame to ensure consistent alignment across the dataset.
+- Optionally apply minimal padding after subject-aware cropping to restore baseline dimensions while preserving aspect ratio.
+- LLM should consider when padding/background may be useful (e.g., for document scans, portrait framing, or to meet model input requirements), not just default to no padding.
+- Integrate specialized detectors (e.g., face detectors) for targeted crops in portrait datasets.
+- Use saliency or attention maps to adaptively weight normalization parameters based on content importance.
+- Automatically remove empty borders or margins using edge or contour detection.
+- Normalize bit depth across the dataset (e.g., convert all images to 8-bit per channel for consistency).
+- Implement vision-based background filling for padding instead of single color. Use semantic segmentation or inpainting to extend image context for padded regions.

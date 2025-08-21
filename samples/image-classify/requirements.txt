@@ -1,6 +1,5 @@
 pillow
 pandas
-exifread
 fastmcp
 openai
 foundry-local-sdk

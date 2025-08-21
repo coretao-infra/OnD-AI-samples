@@ -20,6 +20,29 @@ from PIL import Image, ImageOps
 # builds a complete action trace for each image.
 
 # --- Normalization step functions ---
+def _apply_orientation(img, baseline, actions):
+    """Rotate image according to orientation value in baseline (if present)."""
+    orientation = baseline.get('orientation')
+    # Only apply if orientation is a valid int and not 1 (normal)
+    if isinstance(orientation, int) and orientation in [2,3,4,5,6,7,8]:
+        # Map EXIF orientation to PIL transpose operations
+        orientation_map = {
+            2: Image.FLIP_LEFT_RIGHT,
+            3: Image.ROTATE_180,
+            4: Image.FLIP_TOP_BOTTOM,
+            5: (Image.FLIP_LEFT_RIGHT, Image.ROTATE_90),
+            6: Image.ROTATE_270,
+            7: (Image.FLIP_LEFT_RIGHT, Image.ROTATE_270),
+            8: Image.ROTATE_90
+        }
+        op = orientation_map.get(orientation)
+        if isinstance(op, tuple):
+            for o in op:
+                img = img.transpose(o)
+        else:
+            img = img.transpose(op)
+        actions.append(f"orientation:{orientation}")
+    return img
 def _apply_resize(img, baseline, actions):
     """Resize image to target width/height preserving aspect ratio."""
     tw, th = baseline.get('target_width'), baseline.get('target_height')
@@ -106,7 +129,8 @@ def normalize_image(
 	orig_size = img.size
 	actions = []
 
-	# Pipeline: resize, crop/pad, color convert, strip metadata, save
+	# Pipeline: orientation, resize, crop/pad, color convert, strip metadata, save
+	img = _apply_orientation(img, baseline, actions)
 	img = _apply_resize(img, baseline, actions)
 	img = _apply_crop_pad(img, baseline, actions)
 	img = _apply_color(img, baseline, actions)

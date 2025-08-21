@@ -86,13 +86,19 @@ def marshal_metadata_for_llm(metadata_csv_path):
 		return dict(counter.most_common(n))
 	color_mode_counter = Counter(df['mode'])
 	format_counter = Counter(df['format'])
+	orientation_counter = Counter(df['orientation'].dropna().astype(int))
+	bit_depth_counter = Counter(df['bit_depth'].dropna().astype(int))
+	aspect_ratio_stats = stats(df['aspect_ratio'].astype(float))
 	summary = {
 		'num_images': int(len(df)),
 		'width': width_stats,
 		'height': height_stats,
+		'aspect_ratio': aspect_ratio_stats,
 		'file_size': file_size_stats,
 		'color_modes_top': top_n(color_mode_counter),
-		'formats_top': top_n(format_counter)
+		'formats_top': top_n(format_counter),
+		'orientation_top': top_n(orientation_counter),
+		'bit_depth_top': top_n(bit_depth_counter)
 	}
 	# Output as a compact, human-readable, non-JSON string for LLM compatibility
 	def flatten(d, prefix=""):
@@ -173,6 +179,9 @@ def validate_baseline_params(params):
 		# Allowed values/range checks (if specified)
 		if allowed:
 			allowed_lc = allowed.lower()
+			# If 'null ok' specified, any non-null is acceptable
+			if 'null ok' in allowed_lc and value is not None:
+				continue
 			# If 'commonest' in allowed, accept any string value (LLM is supposed to pick the most common)
 			if 'commonest' in allowed_lc:
 				continue

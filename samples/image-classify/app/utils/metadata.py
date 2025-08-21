@@ -1,4 +1,3 @@
-
 # Canonical function to list all available profiles and their fields
 def get_all_profiles():
     """
@@ -15,7 +14,6 @@ def get_all_profiles():
 import os
 import json
 from PIL import Image
-import exifread
 from .config import NORMALIZE_SCHEMA_PATH
 
 def get_profile_fields(profile_name, schema_path=None):
@@ -46,13 +44,28 @@ def extract_metadata(input_dir, profile):
     return records
 
 
-def get_exif_data(img_path):
+
+    # REMOVED: exifread logic. Use only Pillow for EXIF extraction.
+
+def get_image_orientation(img_path):
+    """
+    Canonically extract orientation from EXIF (PIL or exifread) for a given image path.
+    Returns int or None.
+    """
+    orientation = None
     try:
-        with open(img_path, 'rb') as f:
-            tags = exifread.process_file(f, details=True)
-        return {k: str(v) for k, v in tags.items()}
+        with Image.open(img_path) as img:
+            exif_pil = img.getexif() if hasattr(img, 'getexif') else {}
+            orientation = exif_pil.get(274)
     except Exception:
-        return {}
+        pass
+    if orientation is None:
+        exif_data = get_exif_data(img_path)
+        raw = exif_data.get('Image Orientation') or exif_data.get('Orientation')
+        if raw:
+            digits = ''.join(ch for ch in raw if ch.isdigit())
+            orientation = int(digits) if digits else None
+    return orientation
 
 def get_image_metadata(img_path, input_dir):
     try:
@@ -62,6 +75,9 @@ def get_image_metadata(img_path, input_dir):
             info = img.info
             format = img.format
             dpi = info.get('dpi', (None, None))
+            # Use only Pillow for EXIF extraction
+            exif_pil = img.getexif() if hasattr(img, 'getexif') else {}
+            orientation = exif_pil.get(274)
             def safe_num(val):
                 # Handles PIL IFDRational, tuple, or other non-serializable types
                 try:
@@ -81,9 +97,7 @@ def get_image_metadata(img_path, input_dir):
                     return str(val)
 
             bit_depth = img.bits if hasattr(img, 'bits') else None
-            orientation = info.get('orientation') or None
             aspect_ratio = round(width / height, 4) if height else None
-            exif = get_exif_data(img_path)
             stat = os.stat(img_path)
             rel_path = os.path.relpath(img_path, input_dir)
             parent_folder = os.path.basename(os.path.dirname(img_path))
@@ -104,10 +118,10 @@ def get_image_metadata(img_path, input_dir):
                 'created_time': stat.st_ctime,
                 'modified_time': stat.st_mtime,
                 'compression': info.get('compression'),
-                'exif_make': exif.get('Image Make'),
-                'exif_model': exif.get('Image Model'),
-                'exif_datetime': exif.get('EXIF DateTimeOriginal'),
-                'all_exif_json': json.dumps(exif, ensure_ascii=False),
+                'exif_make': exif_pil.get(271),
+                'exif_model': exif_pil.get(272),
+                'exif_datetime': exif_pil.get(36867),
+                'all_exif_json': json.dumps({k: str(v) for k, v in exif_pil.items()}, ensure_ascii=False),
             }
     except Exception as e:
         print(f"Error reading {img_path}: {e}")
