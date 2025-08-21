@@ -162,3 +162,10 @@ Suggested flags (implement as appropriate in your app.py)
 - Add drag-and-drop support and a simple preview thumbnail.
 - Batch classify a folder and write results to CSV.
 - Add Grad-CAM or saliency visualization to explain predictions.
+
+## 📝 TODO / Roadmap
+- Make padding optional in the normalization pipeline (allow disabling padding; default to crop-only).
+- Implement interactive baseline-refinement loop in `scripts/gen_baseline.py`.
+- Integrate LLM-assisted cropping and optional background padding logic.
+- Strip metadata from output images and enforce output format conversion.
+- Enhance logging and reporting of normalization statistics.
