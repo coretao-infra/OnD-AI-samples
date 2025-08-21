@@ -1,5 +1,3 @@
-
-
 # This module establishes a good image normalization baseline based on metadata.
 # It leverages an LLM completion API to recommend parameters.
 # All parameters are validated for sanity; failures are reported and the process stops gracefully (no fallback).
@@ -196,6 +194,19 @@ def validate_baseline_params(params):
 			elif allowed and value is not None and allowed not in str(value):
 				# Simple substring match for hints
 				raise ValueError(f"{field} {value} does not match allowed: {allowed}")
+	# Aspect ratio validation
+	preserve = BASELINE_SCHEMA_STATIC.get('preserve_aspect_ratio', True)
+	width = params.get('target_width')
+	height = params.get('target_height')
+	# Require at least one dimension
+	if width is None and height is None:
+		raise ValueError("Must specify at least one of target_width or target_height.")
+	# If height is null but aspect ratio not preserved, height cannot be computed
+	if height is None and not preserve:
+		raise ValueError("target_height is null but preserve_aspect_ratio=False; cannot compute height.")
+	# Symmetric check for width
+	if width is None and not preserve:
+		raise ValueError("target_width is null but preserve_aspect_ratio=False; cannot compute width.")
 	return True
 
 def establish_baseline_from_metadata(metadata_csv_path):

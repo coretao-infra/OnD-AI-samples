@@ -48,7 +48,7 @@ image-classify/
 ├── app/
 │   ├── scripts/
 │   │   ├── NORMALIZATION_DESIGN.md
-│   │   └── normalize.py
+│   │   └── gen_baseline.py
 │   ├── routes/
 │   ├── templates/
 │   └── utils/

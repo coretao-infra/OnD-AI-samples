@@ -1,4 +1,3 @@
-
 # PowerShell setup script for the image-classify sample
 # Sets up a single Python environment for the entire app (including scripts)
 
@@ -34,8 +33,8 @@ Write-Host "\nSetup complete. To activate the environment later, run:"
 Write-Host $activatePath
 
 Write-Host "\nTo run the canonical metadata extraction script, use:"
-Write-Host "python -m scripts.normalize --profile <profile>"
+Write-Host "python -m scripts.gen_baseline --profile <profile>"
 Write-Host "\nIf you encounter import errors, try:"
-Write-Host "$env:PYTHONPATH='.'; python -m scripts.normalize --profile <profile>"
+Write-Host "$env:PYTHONPATH='.'; python -m scripts.gen_baseline --profile <profile>"
 
 Write-Host "\nFor more info, see README.md."

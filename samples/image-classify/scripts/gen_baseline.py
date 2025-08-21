@@ -14,7 +14,7 @@ import logging
 
 from app.utils.config import NORMALIZE_INPUT_DIR, NORMALIZE_META_OUT, NORMALIZE_BASELINE_OUTPUT_PATH
 from app.utils.metadata import extract_metadata
-from app.utils.baseline import establish_baseline_from_metadata
+from app.utils.baseline_util import establish_baseline_from_metadata
 
 
 
