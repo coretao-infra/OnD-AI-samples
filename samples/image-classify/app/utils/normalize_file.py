@@ -101,57 +101,74 @@ def _save_image(img, input_path, output_dir, baseline, actions):
     return out
 
 def normalize_image(
-	input_path,
-	output_dir,
-	log_path,
-	baseline=None
-):
-	# Debug input parameters
-	logging.debug(f"normalize_image called with input={input_path}, output_dir={output_dir}, log_path={log_path}, baseline keys={list(baseline.keys()) if baseline else None}")
-	# Show mapping between schema key and used 'max_width'
-	logging.debug(f"baseline target_width={baseline.get('target_width')}, computed max_width from baseline.get('max_width')={baseline.get('max_width')}")
+        input_path,
+        output_dir,
+        log_path,
+        baseline=None
+    ):
+        # Debug input parameters
+        logging.debug(f"normalize_image called with input={input_path}, output_dir={output_dir}, log_path={log_path}, baseline keys={list(baseline.keys()) if baseline else None}")
+        # Show mapping between schema key and used 'max_width'
+        logging.debug(f"baseline target_width={baseline.get('target_width')}, computed max_width from baseline.get('max_width')={baseline.get('max_width')}")
 
-	"""
-	Normalize an image file according to the baseline.
-	- input_path: path to the input image
-	- output_dir: directory to save normalized image
-	- log_path: path to log file (JSON lines)
-	- baseline: dict with normalization params (e.g., {'max_width': 2048, 'color_mode': 'RGB', 'quality': 85})
-	"""
-	if baseline is None:
-		baseline = {}
+        """
+        Normalize an image file according to the baseline.
+        - input_path: path to the input image
+        - output_dir: directory to save normalized image
+        - log_path: path to log file (JSON lines)
+        - baseline: dict with normalization params (e.g., {'max_width': 2048, 'color_mode': 'RGB', 'quality': 85})
+        """
+        if baseline is None:
+            baseline = {}
 
-	os.makedirs(output_dir, exist_ok=True)
-	os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-	img = Image.open(input_path)
-	orig_mode = img.mode
-	orig_size = img.size
-	actions = []
+        img = Image.open(input_path)
+        orig_mode = img.mode
+        orig_size = img.size
+        actions = []
 
-	# Pipeline: orientation, resize, crop/pad, color convert, strip metadata, save
-	img = _apply_orientation(img, baseline, actions)
-	img = _apply_resize(img, baseline, actions)
-	img = _apply_crop_pad(img, baseline, actions)
-	img = _apply_color(img, baseline, actions)
-	img = _strip_metadata(img, baseline, actions)
-	out_path = _save_image(img, input_path, output_dir, baseline, actions)
+        # Use per-image orientation from metadata (if available)
+        from .metadata import get_image_orientation
+        orientation = get_image_orientation(input_path)
+        per_image_baseline = dict(baseline)
+        per_image_baseline['orientation'] = orientation
 
-	# Log mapping and actions
-	log_entry = {
-		'input': input_path,
-		'output': out_path,
-		'actions': actions,
-		'orig_mode': orig_mode,
-		'orig_size': orig_size,
-		'final_mode': img.mode,
-		'final_size': img.size
-	}
-	# Warn if no transformation occurred
-	if not actions:
-		logging.warning(f"No actions applied to {input_path}; size remains {orig_size}")
-	with open(log_path, 'a', encoding='utf-8') as logf:
-		logf.write(json.dumps(log_entry) + '\n')
+        # Pipeline: orientation, resize, crop/pad, color convert, strip metadata, save
+        img = _apply_orientation(img, per_image_baseline, actions)
+        img = _apply_resize(img, per_image_baseline, actions)
+        img = _apply_crop_pad(img, per_image_baseline, actions)
+        img = _apply_color(img, per_image_baseline, actions)
+        img = _strip_metadata(img, per_image_baseline, actions)
+        out_path = _save_image(img, input_path, output_dir, per_image_baseline, actions)
+
+        # Log mapping and actions
+        final_file_size = os.path.getsize(out_path) if os.path.exists(out_path) else None
+        changed_attrs = {}
+        # Track all attributes that changed during normalization
+        if orig_mode != img.mode:
+            changed_attrs['color_mode'] = {'from': orig_mode, 'to': img.mode}
+        if orig_size != img.size:
+            changed_attrs['size'] = {'from': orig_size, 'to': img.size}
+        # Add more attribute tracking as needed (orientation, etc.)
+        log_entry = {
+            'input': input_path,
+            'output': out_path,
+            'actions': actions,
+            'orig_mode': orig_mode,
+            'orig_size': orig_size,
+            'final_mode': img.mode,
+            'final_size': img.size,
+            'final_size_bytes': final_file_size,
+            'changed_attrs': changed_attrs
+        }
+        # Warn if no transformation occurred
+        if not actions:
+            logging.warning(f"No actions applied to {input_path}; size remains {orig_size}")
+        with open(log_path, 'a', encoding='utf-8') as logf:
+            logf.write(json.dumps(log_entry) + '\n')
+        return log_entry
 
 # ---
 # Future hooks for EXIF, MCP, LLM integration can be added here
