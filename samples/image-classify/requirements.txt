@@ -3,3 +3,6 @@ pandas
 fastmcp
 openai
 foundry-local-sdk
+
+# Include app-specific requirements
+-r app/requirements.txt

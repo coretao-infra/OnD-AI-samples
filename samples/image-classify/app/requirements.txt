@@ -1,0 +1,5 @@
+
+# Core vision/model requirements for app utilities
+numpy
+onnxruntime
+opencv-python
