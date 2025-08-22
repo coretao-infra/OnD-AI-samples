@@ -1,3 +1,33 @@
+# Quick Start
+
+1. **Clone and set up environment:**
+  ```powershell
+  git clone <repo-url>
+  cd samples/image-classify
+  .\scripts\setup.ps1
+  ```
+2. **Run the baseline generation script:**
+  ```powershell
+  python -m scripts.gen_baseline --profile <profile>
+  ```
+  - Input: `assets/input/img/`
+  - Output: `assets/output/normalize-mk1/meta/metadata.csv`
+
+---
+# Windows On-Device AI Lab: Image Classifier (ONNX Runtime)
+
+## Directory Structure
+
+```text
+image-classify/
+├── app/           # App package (see app/README.md for internals)
+├── assets/        # Input/output images and web assets
+├── scripts/       # Setup and normalization scripts
+├── README.md      # Main project documentation
+└── ...
+```
+
+---
 # Major Improvements (2025-08)
 
 ## Configuration-Driven Normalization Pipeline
@@ -34,12 +64,94 @@ allowed_color_modes = RGB, L, CMYK
 
 ## Project Context & Normalization Workflow
 
+For app internals and developer notes, see [`app/README.md`](app/README.md).
+
 This project includes a robust workflow for preparing image datasets for AI/ML classification. The normalization process is designed to:
 - Analyze the actual distribution of image properties (resolution, compression, file size, color mode, etc.)
 - Use an LLM (via Foundry Local) to recommend optimal normalization parameters that maximize consistency while minimizing unnecessary loss of richness
 - Normalize images accordingly and randomize output filenames to remove source bias
 
-See `app/scripts/NORMALIZATION_DESIGN.md` for detailed objectives and design, including future plans for LLM-assisted cropping and enrichment.
+
+---
+
+## Detailed Normalization Design
+
+This section expands on the normalization workflow, providing objectives, step-by-step design, and configuration structure for reproducible, data-driven image normalization.
+
+### Objectives
+
+- **Data-driven Normalization:**
+  - Normalize a collection of images to a common baseline for downstream ML/classification tasks.
+  - Avoid arbitrary downscaling or compression—preserve as much image richness as possible.
+  - Determine normalization parameters (resolution, compression, file size, etc.) based on the actual characteristics of the current image set.
+  - Use an LLM (via Foundry Local) to analyze metadata and recommend optimal normalization parameters.
+  - Ensure the process is reproducible and well-logged for future reference.
+
+### Step-by-Step Workflow
+
+1. **Metadata Extraction (Mark 1):**
+   - Use Python (Pillow, exifread, or similar) to extract for each image:
+     - Dimensions (width, height)
+     - Color mode (RGB, grayscale, etc.)
+     - DPI (if available)
+     - File size (bytes)
+     - Compression level/quality (if available)
+     - Any other relevant EXIF metadata
+   - Store metadata in a structured format (e.g., CSV, DataFrame, or JSON).
+   - **MCP-based Metadata Extraction (Alternative/Upgrade):**
+     - Use the Model Context Protocol (MCP) image metadata extraction endpoint to extract rich metadata for each image.
+     - The MCP tool can provide structured metadata including dimensions, color mode, DPI, file size, compression, EXIF, and more, in a single call.
+     - Example workflow:
+       1. Call the MCP endpoint with the input directory and desired profile (e.g., "rich").
+       2. Receive a structured list of metadata for all images.
+       3. Store or process as needed for downstream analysis.
+
+2. **Metadata Analysis & Baseline Discovery (Mark 1):**
+   - Summarize the distribution of key properties (e.g., histograms of width, height, file size).
+   - Identify outliers and clusters (e.g., most common resolutions, file sizes).
+   - Prepare a summary for LLM input (e.g., "Most images are 3000x2000, file sizes range 1-4MB, 90% are JPEG, ...").
+
+3. **LLM-Assisted Baseline Selection (Mark 1):**
+   - Use a self-initializing, config-driven LLM module (see `llm.py`) that:
+     - Reads all LLM connection/model details from `config.ini` ([llm] section).
+     - Initializes with a default meta prompt (`default_meta_prompt` in `[llm]`), which can be overridden at runtime.
+     - The LLM module generically manages and prepends a meta/system prompt as configured or set at runtime, for any context or use case.
+   - Use Foundry Local LLM to:
+     - Review the metadata summary.
+     - Recommend normalization parameters that maximize consistency while minimizing unnecessary loss (e.g., "resize only images above 2500px wide to 2048px, set JPEG quality to 85, ...").
+     - Optionally, provide rationale for chosen parameters.
+
+4. **Image Normalization (Mark 1):**
+   - Apply the recommended normalization:
+     - Downscale only if above baseline.
+     - Adjust compression/quality as needed.
+     - Convert color mode if required.
+     - Save to output directory with randomized filenames (e.g., UUIDs).
+
+5. **Output & Logging (Mark 1):**
+   - Intended output is for AI image classification jobs
+   - Randomize output filenames to remove source bias.
+   - Save normalized images to a new directory.
+   - Log mapping of original to new filenames and applied transformations.
+   - Optionally, generate a report summarizing the normalization process and statistics.
+
+#### Example Configuration Structure
+
+```ini
+[llm]
+alias = phi-3.5-mini
+variant = instruct-generic-gpu
+endpoint = http://localhost:8000/v1
+api_key =
+default_meta_prompt = "You always prepend a warning in your responses that the default prompt is active."
+
+[normalize]
+normalize_meta_prompt = "You are a seasoned LM scientist's brain with powerful intuition encapsulated as an API responder."
+```
+
+---
+
+For future plans and semantic-aware normalization (Mark 2), see the "Phase 2" section below.
 
 ### Minimal Project Structure
 
