@@ -275,12 +275,42 @@ Suggested flags (implement as appropriate in your app.py)
 - Batch classify a folder and write results to CSV.
 - Add Grad-CAM or saliency visualization to explain predictions.
 
+
 ## 📝 TODO / Roadmap
+
+### Parked/Future App Features
+
+1.3. **Live Provider Switching**
+  - Allow switching between CPU and DirectML (GPU) for inference in the app UI, and compare performance.
+
+2.1. **CLI-Only Interface**
+  - Add a command-line interface for image inference and results (if needed for headless/demo scenarios).
+
+6.1. **Extensibility Hooks**
+  - Add clear extension points for future features (e.g., Grad-CAM, saliency maps, custom postprocessing).
 - Make padding optional in the normalization pipeline (allow disabling padding; default to crop-only).
 - Implement interactive baseline-refinement loop in `scripts/gen_baseline.py`.
 - Integrate LLM-assisted cropping and optional background padding logic.
 - Strip metadata from output images and enforce output format conversion.
 - Enhance logging and reporting of normalization statistics.
+
+### Web UI & App Sample Extensions (for future contributors)
+
+2. **Live Model Switching**
+  - Add a dropdown in the web UI to switch between available ONNX models (e.g., MobileNetV2, ResNet50).
+  - Instantly re-run inference on the last image with the new model.
+
+3. **Image Preprocessing Visualization**
+  - Show the original and preprocessed (normalized, resized, color-converted) image side-by-side in the UI.
+  - Optionally, let the user toggle normalization steps to see their effect.
+
+4. **Batch Upload & Results Table**
+  - Allow uploading multiple images at once.
+  - Show a table/grid of images with their top prediction and confidence.
+
+8. **Workshop/Teaching Mode**
+  - Step-by-step UI mode: walk users through upload, preprocessing, inference, and result interpretation.
+  - Inline tooltips explaining each step and what’s happening on-device.
 
 ## Phase 2: Vision-Enabled Normalization (Mark 2)
 In addition to the basic Mark 1 pipeline, leverage vision models and image analysis to further refine normalization:
