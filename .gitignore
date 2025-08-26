@@ -1,5 +1,5 @@
 # Ignore model files to prevent repo bloat
-samples/image-classify/assets/models/
+# samples/image-classify/assets/models/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
