@@ -8,6 +8,7 @@ from utils.llm_schema import Model
 from utils.menu import display_models_with_rich, display_main_menu, get_main_menu_choice
 from utils.display import display_models_with_rich
 from typing import List
+import openai
 
 def setup_logging():
     """Set up logging configuration."""
@@ -144,6 +145,7 @@ def display_menu():
     print("5. Display raw cached models")
     print("6. Display raw loaded models")
     print("7. Exit")
+    print("8. Test inference with model selection")
 
 def main_ui_loop():
     """Main UI loop for interacting with Foundry Local."""
@@ -196,8 +198,90 @@ def main_ui_loop():
             print("Exiting Foundry Local Model Manager.")
             break
 
+        elif choice == "8":
+            test_inference_with_model_selection()
+
         else:
             print("Invalid choice. Please try again.")
+
+def run_inference(alias: str, messages: List[dict]) -> None:
+    """Run inference using a specified model alias and input messages.
+
+    Args:
+        alias (str): The alias of the model to use for inference.
+        messages (List[dict]): A list of messages to send to the model.
+
+    Returns:
+        None
+    """
+    manager = FoundryLocalManager(alias)
+
+    # Configure the client to use the local Foundry service
+    client = openai.OpenAI(
+        base_url=manager.endpoint,
+        api_key=manager.api_key  # API key is not required for local usage
+    )
+
+    # Set the model to use and generate a streaming response
+    stream = client.chat.completions.create(
+        model=manager.get_model_info(alias).id,
+        messages=messages,
+        stream=True
+    )
+
+    # Print the streaming response
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            print(chunk.choices[0].delta.content, end="", flush=True)
+
+def test_inference_with_light_prompt():
+    """Test inference using the 'light' prompt from the configuration."""
+    # Load the configuration to get the 'light' prompt
+    config = load_config()
+    light_prompt = config["prompt_sets"]["light"]["user_prompt"]
+
+    # Define the input messages for the model
+    messages = [
+        {"role": "user", "content": light_prompt}
+    ]
+
+    # Use a default alias for testing
+    alias = "phi-3.5-mini"
+
+    # Run inference using the public inference function
+    run_inference(alias, messages)
+
+def test_inference_with_model_selection():
+    """Test inference by selecting a model from the numbered list."""
+    # Get all models with their cache state
+    models = get_all_models_with_cache_state()
+
+    # Display the models in a numbered list
+    display_models_with_rich(models)
+
+    # Prompt the user to select a model by number
+    try:
+        model_number = int(input("Enter the number of the model to use for inference: "))
+        if 1 <= model_number <= len(models):
+            alias = models[model_number - 1].id  # Use the selected model's ID
+        else:
+            print("Invalid model number. Please try again.")
+            return
+    except ValueError:
+        print("Invalid input. Please enter a number.")
+        return
+
+    # Load the configuration to get the 'light' prompt
+    config = load_config()
+    light_prompt = config["prompt_sets"]["light"]["user_prompt"]
+
+    # Define the input messages for the model
+    messages = [
+        {"role": "user", "content": light_prompt}
+    ]
+
+    # Run inference using the public inference function
+    run_inference(alias, messages)
 
 def main():
     setup_logging()

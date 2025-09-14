@@ -36,6 +36,13 @@ This project is designed to benchmark different LLM models using a menu-driven U
 - [ ] Add progress indicator for caching models.
   - Implement a proper progress indicator to show the status of caching a model in the Foundry Local Model Manager.
 - [ ] Ensure viewing the configuration uses a canonical parse via `config.py` instead of a raw dump.
+- [ ] Create a real-time `display_inference` function that uses `rich` to display the prompt with stats asynchronously.
+  - Clear the screen and split it into a larger top inference box and a bottom stats details box.
+  - Display information such as:
+    - Token window size.
+    - Token size of user and system prompts.
+    - Number of tokens generated so far.
+    - Tokens per second so far.
 
 ## FUTURE
 - [ ] Implement queuing for benchmarking tasks.

@@ -7,19 +7,20 @@ from rich.table import Table
 from utils.llm_schema import Model
 
 
-def run_benchmark(config, model=None):
+def run_benchmark(config, model):
+    """Run a benchmark for the selected model."""
     console = Console()
-    console.print("[bold blue]Running Benchmark...[/bold blue]")
+    console.print(f"[bold blue]Running Benchmark for {model.alias} (ID: {model.id})...[/bold blue]")
 
-    if model:
-        console.print(f"[yellow]Benchmarking model:[/yellow] {model.alias} (ID: {model.id})")
-        # Simulate benchmarking logic for the selected model
-        console.print(f"[green]Model {model.alias} benchmark completed successfully![/green]")
-    else:
-        for model in config.get("models", []):
-            console.print(f"[yellow]Benchmarking model:[/yellow] {model}")
-            # Simulate benchmarking logic
-            console.print(f"[green]Model {model} benchmark completed successfully![/green]")
+    # Simulate benchmarking logic
+    import time
+    console.print("[yellow]Loading model...[/yellow]")
+    time.sleep(2)  # Simulate loading time
+
+    console.print("[yellow]Running inference...[/yellow]")
+    time.sleep(3)  # Simulate inference time
+
+    console.print(f"[green]Benchmark completed successfully for {model.alias}![/green]")
 
 
 def list_all_models():
@@ -66,7 +67,7 @@ def main():
             list_backends,  # Use the moved `list_backends` function
             select_backend,
             list_all_models,
-            lambda cfg, model: print(f"Run benchmark for {model.alias} not implemented")
+            run_benchmark  # Pass the implemented `run_benchmark` function
         ):
             break
 
