@@ -1,5 +1,5 @@
 import logging
-from foundry_local import FoundryLocalManager
+from .foundrylocal import FoundryLocalManagerWrapper
 from .config import load_config
 import argparse
 from rich.console import Console
@@ -11,44 +11,44 @@ def setup_logging():
 
 def is_service_running():
     """Check if the Foundry Local service is running."""
-    manager = FoundryLocalManager()
-    return manager.is_service_running()
+    manager = FoundryLocalManagerWrapper()
+    return manager.manager.is_service_running()
 
 def start_service():
     """Start the Foundry Local service."""
-    manager = FoundryLocalManager()
-    manager.start_service()
+    manager = FoundryLocalManagerWrapper()
+    manager.manager.start_service()
     logging.info("Foundry Local service started.")
 
 def list_catalog_models():
     """List all available models in the catalog."""
-    manager = FoundryLocalManager()
-    catalog = manager.list_catalog_models()
+    manager = FoundryLocalManagerWrapper()
+    catalog = manager.manager.list_catalog_models()
     return catalog
 
 def list_cached_models():
     """List all models in the local cache."""
-    manager = FoundryLocalManager()
-    cached_models = manager.list_cached_models()
+    manager = FoundryLocalManagerWrapper()
+    cached_models = manager.manager.list_cached_models()
     return cached_models
 
 def get_model_info(alias_or_model_id):
     """Get detailed information about a specific model."""
-    manager = FoundryLocalManager()
-    return manager.get_model_info(alias_or_model_id)
+    manager = FoundryLocalManagerWrapper()
+    return manager.manager.get_model_info(alias_or_model_id)
 
 def get_all_models_with_cache_state():
     """Get all available models with their alias, device, size, cached state, and loaded state."""
-    manager = FoundryLocalManager()
+    manager = FoundryLocalManagerWrapper()
 
     # Fetch all models from the catalog
-    catalog = manager.list_catalog_models()
+    catalog = manager.manager.list_catalog_models()
 
     # Fetch cached models
-    cached_models = {model.id for model in manager.list_cached_models()}
+    cached_models = {model.id for model in manager.manager.list_cached_models()}
 
     # Fetch loaded models
-    loaded_models = {model.id for model in manager.list_loaded_models()}
+    loaded_models = {model.id for model in manager.manager.list_loaded_models()}
 
     # Build the list of models with their states
     models_with_cache_state = []
@@ -74,18 +74,18 @@ def manage_model_cache(action, alias_or_model_id):
     Returns:
         str: Success message or error message.
     """
-    manager = FoundryLocalManager()
+    manager = FoundryLocalManagerWrapper()
 
     if action == 'add':
         try:
-            manager.download_model(alias_or_model_id)
+            manager.manager.download_model(alias_or_model_id)
             return f"Model {alias_or_model_id} added to cache."
         except Exception as e:
             return f"Failed to add model {alias_or_model_id} to cache: {e}"
 
     elif action == 'remove':
         try:
-            manager.unload_model(alias_or_model_id, force=True)
+            manager.manager.unload_model(alias_or_model_id, force=True)
             return f"Model {alias_or_model_id} removed from cache."
         except Exception as e:
             return f"Failed to remove model {alias_or_model_id} from cache: {e}"
@@ -95,24 +95,24 @@ def manage_model_cache(action, alias_or_model_id):
 
 def display_raw_catalog():
     """Display all raw information from the SDK's catalog models."""
-    manager = FoundryLocalManager()
-    catalog = manager.list_catalog_models()
+    manager = FoundryLocalManagerWrapper()
+    catalog = manager.manager.list_catalog_models()
     print("\nRaw Catalog Models:")
     for model in catalog:
         print(model)
 
 def display_raw_cache():
     """Display all raw information from the SDK's cached models."""
-    manager = FoundryLocalManager()
-    cached_models = manager.list_cached_models()
+    manager = FoundryLocalManagerWrapper()
+    cached_models = manager.manager.list_cached_models()
     print("\nRaw Cached Models:")
     for model in cached_models:
         print(model)
 
 def display_raw_loaded_models():
     """Display raw output of all loaded models."""
-    manager = FoundryLocalManager()
-    loaded_models = manager.list_loaded_models()
+    manager = FoundryLocalManagerWrapper()
+    loaded_models = manager.manager.list_loaded_models()
     print("\nRaw Loaded Models:")
     for model in loaded_models:
         print(model)

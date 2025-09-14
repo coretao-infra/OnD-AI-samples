@@ -35,6 +35,10 @@ This project is designed to benchmark different LLM models using a menu-driven U
 - [ ] Write detailed documentation in this `README.md` for contributing and advanced usage.
 - [ ] Add progress indicator for caching models.
   - Implement a proper progress indicator to show the status of caching a model in the Foundry Local Model Manager.
+- [ ] Ensure viewing the configuration uses a canonical parse via `config.py` instead of a raw dump.
+
+## FUTURE
+- [ ] Implement queuing for benchmarking tasks.
 
 ## Notes
 - Ensure the virtual environment is activated before running any scripts.
