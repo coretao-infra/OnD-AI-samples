@@ -4,6 +4,9 @@ from .config import load_config
 import argparse
 from rich.console import Console
 from rich.table import Table
+from utils.llm_schema import Model
+from utils.menu import display_models_with_rich
+from typing import List
 
 def setup_logging():
     """Set up logging configuration."""
@@ -37,6 +40,18 @@ def get_model_info(alias_or_model_id):
     manager = FoundryLocalManager()
     return manager.get_model_info(alias_or_model_id)
 
+def create_model_object(model, cached_models, loaded_models, backend):
+    """Helper method to create a Model object with cache and load state."""
+    return Model(
+        id=model.id,
+        alias=model.alias,
+        device="GPU" if "gpu" in model.id.lower() else "CPU" if "cpu" in model.id.lower() else "Unknown",
+        size=model.file_size_mb,
+        cached=model.id in cached_models,
+        loaded=model.id in loaded_models,
+        backend=backend
+    )
+
 def get_all_models_with_cache_state():
     """Get all available models with their alias, device, size, cached state, and loaded state."""
     manager = FoundryLocalManager()
@@ -50,19 +65,19 @@ def get_all_models_with_cache_state():
     # Fetch loaded models
     loaded_models = {model.id for model in manager.list_loaded_models()}
 
-    # Build the list of models with their states
-    models_with_cache_state = []
-    for model in catalog:
-        models_with_cache_state.append({
-            "id": model.id,
-            "alias": model.alias,
-            "device": "GPU" if "gpu" in model.id.lower() else "CPU" if "cpu" in model.id.lower() else "Unknown",
-            "size": model.file_size_mb,
-            "cached": model.id in cached_models,
-            "loaded": model.id in loaded_models  # Check if the model is loaded
-        })
-
-    return models_with_cache_state
+    # Build and return a list of Model objects
+    return [
+        Model(
+            id=model.id,
+            alias=model.alias,
+            device="GPU" if "gpu" in model.id.lower() else "CPU" if "cpu" in model.id.lower() else "Unknown",
+            size=model.file_size_mb,
+            cached=model.id in cached_models,
+            loaded=model.id in loaded_models,
+            backend="FoundryLocal"
+        )
+        for model in catalog
+    ]
 
 def manage_model_cache(action, alias_or_model_id):
     """Add or remove models to/from cache.
@@ -129,56 +144,6 @@ def display_menu():
     print("6. Display raw loaded models")
     print("7. Exit")
 
-def display_models_with_rich(models):
-    """Display models in a nicely formatted table using Rich."""
-    console = Console()
-    table = Table(title="Foundry Local Models")
-
-    table.add_column("No.", style="bold white", justify="right")
-    table.add_column("ID", style="cyan", no_wrap=True)
-    table.add_column("Alias", style="magenta")
-    table.add_column("Device", style="green")
-    table.add_column("Size (MB)", style="blue", justify="right")
-    table.add_column("Cached", style="bold yellow")
-    table.add_column("Loaded", style="bold yellow")
-
-    # Sort models: prioritize cached state, then alias groups, then device type
-    models.sort(key=lambda m: (not m["cached"], m["alias"], m["device"] != "GPU"))
-
-    # Assign alternating colors for alias groups
-    alias_colors = ["white", "bright_white"]
-    alias_to_color = {}
-    current_color_index = 0
-
-    for index, model in enumerate(models, start=1):
-        if model["alias"] not in alias_to_color:
-            alias_to_color[model["alias"]] = alias_colors[current_color_index]
-            current_color_index = (current_color_index + 1) % len(alias_colors)
-
-        base_color = alias_to_color[model["alias"]]
-
-        # Adjust color based on cached state and device type
-        if model["cached"]:
-            row_style = f"bold {base_color}"
-        else:
-            row_style = f"dim {base_color}"
-
-        if model["device"] == "GPU":
-            row_style = f"bright_green" if model["cached"] else f"green"
-
-        table.add_row(
-            str(index),
-            model["id"],
-            model["alias"],
-            model["device"],
-            f"{model['size']:,}" if model['size'] else "Unknown",
-            "Yes" if model["cached"] else "No",
-            "Yes" if model["loaded"] else "No",
-            style=row_style
-        )
-
-    console.print(table)
-
 def main_ui_loop():
     """Main UI loop for interacting with Foundry Local."""
     while True:
@@ -195,7 +160,7 @@ def main_ui_loop():
             try:
                 model_number = int(input("Enter the number of the model to add to cache: "))
                 if 1 <= model_number <= len(models):
-                    alias_or_model_id = models[model_number - 1]["id"]
+                    alias_or_model_id = models[model_number - 1].id  # Updated to use dot notation
                     result = manage_model_cache("add", alias_or_model_id)
                     print(result)
                 else:
@@ -209,7 +174,7 @@ def main_ui_loop():
             try:
                 model_number = int(input("Enter the number of the model to remove from cache: "))
                 if 1 <= model_number <= len(models):
-                    alias_or_model_id = models[model_number - 1]["id"]
+                    alias_or_model_id = models[model_number - 1].id  # Updated to use dot notation
                     result = manage_model_cache("remove", alias_or_model_id)
                     print(result)
                 else:

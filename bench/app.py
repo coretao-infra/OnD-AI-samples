@@ -1,8 +1,9 @@
 from utils.config import load_config
 from utils.llm import discover_backends, consolidated_model_list
-from utils.menu import display_main_menu, get_main_menu_choice, handle_main_menu_choice
+from utils.menu import display_main_menu, get_main_menu_choice, handle_main_menu_choice, display_models_with_rich
 from rich.console import Console
 from rich.table import Table
+from utils.llm_schema import Model
 
 
 def run_benchmark(config):
@@ -25,9 +26,8 @@ def list_backends():
 def list_all_models():
     console = Console()
     console.print("[bold blue]Available Models:[/bold blue]")
-    models = consolidated_model_list()
-    for i, model in enumerate(models, start=1):
-        console.print(f"[cyan]{i}.[/cyan] {model}")
+    models = consolidated_model_list()  # Fetch raw model data
+    display_models_with_rich(models)  # Pass models directly without rewrapping
 
 
 def select_backend(config):

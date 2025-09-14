@@ -2,6 +2,7 @@ import tiktoken
 from utils.config import load_config
 from utils.bench_generic_openai import list_openai_models
 from utils.bench_foundrylocal import get_all_models_with_cache_state
+from utils.llm_schema import Model
 
 def count_tokens(text, model):
     """Count tokens in a given text using tiktoken."""
