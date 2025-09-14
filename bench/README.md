@@ -26,23 +26,24 @@ This project is designed to benchmark different LLM models using a menu-driven U
    ```
 
 ## TODO
-- [ ] Implement the main logic in `app.py`.
-- [ ] Populate `config.py` to handle configuration loading and validation.
-- [ ] Develop the canonical helper in `llm.py` for model invocation.
-- [ ] Build the menu-driven UI in `menu.py`.
+- [x] Implement the main logic in `app.py`.
+- [x] Populate `config.py` to handle configuration loading and validation.
+- [x] Develop the canonical helper in `llm.py` for model invocation.
+- [x] Build the menu-driven UI in `menu.py`.
 - [ ] Set up logging in `logging.py` for standardized log formatting and levels.
-- [ ] Validate and utilize `config.json` for backend and model configurations.
+- [x] Validate and utilize `config.json` for backend and model configurations.
 - [ ] Write detailed documentation in this `README.md` for contributing and advanced usage.
 - [ ] Add progress indicator for caching models.
   - Implement a proper progress indicator to show the status of caching a model in the Foundry Local Model Manager.
-- [ ] Ensure viewing the configuration uses a canonical parse via `config.py` instead of a raw dump.
-- [ ] Create a real-time `display_inference` function that uses `rich` to display the prompt with stats asynchronously.
+- [x] Ensure viewing the configuration uses a canonical parse via `config.py` instead of a raw dump.
+- [x] Create a real-time `display_inference` function that uses `rich` to display the prompt with stats asynchronously.
   - Clear the screen and split it into a larger top inference box and a bottom stats details box.
   - Display information such as:
     - Token window size.
     - Token size of user and system prompts.
     - Number of tokens generated so far.
     - Tokens per second so far.
+- [ ] Save whether the model was loaded or not as part of the benchmark result, so it is captured in the output.
 
 ## FUTURE
 - [ ] Implement queuing for benchmarking tasks.

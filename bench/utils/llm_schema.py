@@ -27,7 +27,7 @@ class BenchmarkResult:
     Schema for the benchmark return object.
     Excludes the incoming/result text, which should be streamed to the console.
     """
-    def __init__(self, input_tokens, output_tokens, total_tokens, latency_ms, model, backend, timestamp):
+    def __init__(self, input_tokens, output_tokens, total_tokens, latency_ms, model, backend, timestamp, is_model_loaded):
         self.input_tokens = input_tokens  # Number of tokens in the input
         self.output_tokens = output_tokens  # Number of tokens in the output
         self.total_tokens = total_tokens  # Total tokens used (input + output)
@@ -35,6 +35,7 @@ class BenchmarkResult:
         self.model = model  # Model details (e.g., name, version)
         self.backend = backend  # Backend used for inference
         self.timestamp = timestamp  # Timestamp of the benchmark execution
+        self.is_model_loaded = is_model_loaded  # New field to capture the loaded state
 
     def to_dict(self):
         """Convert the benchmark result object to a dictionary."""
@@ -46,4 +47,5 @@ class BenchmarkResult:
             "model": self.model,
             "backend": self.backend,
             "timestamp": self.timestamp,
+            "is_model_loaded": self.is_model_loaded,
         }

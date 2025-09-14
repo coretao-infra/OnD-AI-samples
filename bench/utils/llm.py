@@ -188,6 +188,9 @@ def bench_inference(models_instance, prompt_set_name):
     results_table.add_column("Field", style="bold cyan")
     results_table.add_column("Value", style="bold yellow")
 
+    # Define `is_model_loaded` earlier in the function
+    is_model_loaded = models_instance.loaded  # Assuming `loaded` is a boolean attribute of the model instance
+
     # Add rows to the results table
     results_table.add_row("Input Tokens", str(input_tokens))
     results_table.add_row("Output Tokens", str(output_tokens))
@@ -196,6 +199,7 @@ def bench_inference(models_instance, prompt_set_name):
     results_table.add_row("Tokens per Second", f"{tokens_per_second:.2f}")
     results_table.add_row("Model", models_instance.id)
     results_table.add_row("Backend", models_instance.backend)
+    results_table.add_row("Model Loaded", "Yes" if is_model_loaded else "No")  # Display if the model was loaded
     results_table.add_row("Timestamp", start_time.isoformat() + "Z")
 
     # Print the results table
@@ -209,7 +213,8 @@ def bench_inference(models_instance, prompt_set_name):
         latency_ms=latency_ms,
         model=models_instance.id,  # Use the id attribute from the Model schema
         backend=models_instance.backend,  # Use the backend attribute from the Model schema
-        timestamp=start_time.isoformat() + "Z"
+        timestamp=start_time.isoformat() + "Z",
+        is_model_loaded=is_model_loaded  # New field to capture the loaded state
     )
 
     # Append the result to the file
