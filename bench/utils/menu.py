@@ -2,6 +2,7 @@ from typing import List
 from rich.console import Console
 from rich.table import Table
 from utils.llm_schema import Model
+from utils.display import display_models_with_rich
 
 def display_models_with_rich(models: List[Model]):
     """Display models in a nicely formatted table using Rich."""
@@ -75,11 +76,8 @@ def get_main_menu_choice():
     """Prompt the user for a choice from the main menu."""
     return input("Enter your choice: ")
 
-def handle_main_menu_choice(choice, config):
+def handle_main_menu_choice(choice, config, consolidated_model_list, list_backends, select_backend, list_all_models, run_benchmark):
     """Handle the user's choice from the main menu."""
-    from utils.llm import discover_backends, consolidated_model_list
-    from app import list_backends, select_backend, list_all_models, run_benchmark
-
     if choice == "1":
         list_backends()
     elif choice == "2":
@@ -87,7 +85,27 @@ def handle_main_menu_choice(choice, config):
     elif choice == "3":
         list_all_models()
     elif choice == "4":
-        run_benchmark(config)
+        # Run benchmark with cached model selection
+        models = consolidated_model_list()
+        cached_models = [model for model in models if model.cached]
+
+        if not cached_models:
+            print("No cached models available.")
+            return True
+
+        # Use display_models_with_rich to show cached models
+        display_models_with_rich(cached_models)
+
+        try:
+            selection = int(input("\nEnter the number of the model to benchmark: "))
+            if 1 <= selection <= len(cached_models):
+                selected_model = cached_models[selection - 1]
+                print(f"\nSelected model: {selected_model.alias} (ID: {selected_model.id})")
+                run_benchmark(config, selected_model)
+            else:
+                print("Invalid selection. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
     elif choice == "5":
         list_all_models()
     elif choice == "9":

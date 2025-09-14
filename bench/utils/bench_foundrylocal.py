@@ -5,7 +5,8 @@ import argparse
 from rich.console import Console
 from rich.table import Table
 from utils.llm_schema import Model
-from utils.menu import display_models_with_rich
+from utils.menu import display_models_with_rich, display_main_menu, get_main_menu_choice
+from utils.display import display_models_with_rich
 from typing import List
 
 def setup_logging():
