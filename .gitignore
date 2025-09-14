@@ -215,3 +215,7 @@ __marimo__/
 /samples/image-classify/assets/output/normalize-mk1
 /samples/image-classify/assets/output/normalize-mk1/img
 /samples/image-classify/assets/output/normalize-mk1/meta
+
+# Ignore all contents of the output folder except .keep
+bench/output/*
+!bench/output/.keep

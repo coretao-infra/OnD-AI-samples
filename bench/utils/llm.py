@@ -1,5 +1,5 @@
 from datetime import datetime
-from utils.config import load_config
+from utils.config import load_config, get_bench_result_path
 from utils.bench_generic_openai import list_openai_models
 from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
 from utils.llm_schema import Model, BenchmarkResult
@@ -7,6 +7,8 @@ from utils.display import display_models_with_rich
 from rich.console import Console
 from rich.table import Table
 from utils.shared import count_tokens
+import json
+import os
 
 def discover_backends():
     """Discover all available backends dynamically."""
@@ -60,6 +62,27 @@ def list_backends():
         console.print("[bold blue]Available Backends:[/bold blue]")
         for idx, backend in enumerate(backends, start=1):
             console.print(f"{idx}. {backend}")
+
+def append_benchmark_result(result):
+    """Append a benchmark result to the results file."""
+    result_path = get_bench_result_path()
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(result_path), exist_ok=True)
+
+    # Load existing results or initialize an empty list
+    if os.path.exists(result_path):
+        with open(result_path, "r") as file:
+            results = json.load(file)
+    else:
+        results = []
+
+    # Append the new result
+    results.append(result)
+
+    # Write back to the file
+    with open(result_path, "w") as file:
+        json.dump(results, file, indent=4)
 
 def bench_inference(models_instance, prompt_set_name):
     """
@@ -138,7 +161,6 @@ def bench_inference(models_instance, prompt_set_name):
     inference_table.add_row("System Prompt Words", str(len(system_prompt.split())))
     inference_table.add_row("User Prompt Words", str(len(user_prompt.split())))
     inference_table.add_row("Average Words per Token", f"{avg_words_per_token:.2f}")
-    inference_table.add_row("Final System Prompt", system_prompt)
 
     # Print the inference details table
     console.print(inference_table)
@@ -189,6 +211,9 @@ def bench_inference(models_instance, prompt_set_name):
         backend=models_instance.backend,  # Use the backend attribute from the Model schema
         timestamp=start_time.isoformat() + "Z"
     )
+
+    # Append the result to the file
+    append_benchmark_result(benchmark_result.__dict__)
 
     console.print("\n[INFO] Inference completed.")
 

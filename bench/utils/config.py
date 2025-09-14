@@ -40,3 +40,8 @@ def load_config():
         raise ValueError("Missing 'alias' in FoundryLocal backend configuration.")
 
     return config
+
+def get_bench_result_path():
+    """Retrieve the path for storing benchmark results."""
+    config = load_config()
+    return config.get("bench_result_path", "output/bench_result.json")
