@@ -1,5 +1,5 @@
 from utils.config import load_config
-from utils.llm import discover_backends, consolidated_model_list, list_backends
+from utils.llm import discover_backends, consolidated_model_list, list_backends, bench_inference
 from utils.menu import display_main_menu, get_main_menu_choice, handle_main_menu_choice
 from utils.display import display_models_with_rich
 from rich.console import Console
@@ -12,15 +12,11 @@ def run_benchmark(config, model):
     console = Console()
     console.print(f"[bold blue]Running Benchmark for {model.alias} (ID: {model.id})...[/bold blue]")
 
-    # Simulate benchmarking logic
-    import time
-    console.print("[yellow]Loading model...[/yellow]")
-    time.sleep(2)  # Simulate loading time
-
-    console.print("[yellow]Running inference...[/yellow]")
-    time.sleep(3)  # Simulate inference time
-
-    console.print(f"[green]Benchmark completed successfully for {model.alias}![/green]")
+    # Call bench_inference to perform the actual benchmark
+    try:
+        bench_inference(model, "light")  # Assuming "light" prompt set for now
+    except Exception as e:
+        console.print(f"[red]Benchmark failed: {e}[/red]")
 
 
 def list_all_models():

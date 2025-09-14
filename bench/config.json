@@ -2,12 +2,12 @@
     "prompt_sets": {
       "light": {
         "max_tokens": 1000,
-        "system_prompt": "You are a text generator. Your responses should be repeatable and utilize the remaining token budget effectively. The response should be approximately {{remaining_tokens}} tokens long.",
+        "system_prompt": "You are a text generator. Your responses should be repeatable and utilize *all* the remaining word count budget effectively. Your response should be approximately {{remaining_words}} words long.",
         "user_prompt": "Explain why the number 42 is the answer to life, the universe, and everything, but also why it might not be the right question. Provide examples of how this concept has been interpreted in literature, philosophy, and pop culture. Include a brief discussion on the significance of asking the right questions in problem-solving and decision-making."
       },
       "medium": {
         "max_tokens": 4000,
-        "system_prompt": "You are a text generator. Responses should be repeatable but detailed, engaging, and utilize the remaining token budget effectively. The response should be approximately {{remaining_tokens}} tokens long.",
+        "system_prompt": "You are a text generator. Responses should be repeatable but detailed, engaging, and utilize *all* the remaining word count budget effectively. The response should be approximately {{remaining_words}} words long.",
         "user_prompt": "Describe the history, culture, and peculiarities of the Vogons, including their poetry, bureaucracy, and their role in the destruction of Earth. Make it as detailed and humorous as possible. Include an analysis of why Vogon poetry is considered the third worst in the universe, and provide a fictional example of a Vogon poem. Discuss how their bureaucratic tendencies have influenced intergalactic policies and their interactions with other species."
       }
     },

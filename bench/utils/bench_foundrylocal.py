@@ -4,11 +4,13 @@ from .config import load_config
 import argparse
 from rich.console import Console
 from rich.table import Table
-from utils.llm_schema import Model
+from utils.llm_schema import Model, BenchmarkResult
 from utils.menu import display_models_with_rich, display_main_menu, get_main_menu_choice
 from utils.display import display_models_with_rich
-from typing import List
+from typing import List, Iterable
 import openai
+from datetime import datetime
+from utils.shared import count_tokens
 
 def setup_logging():
     """Set up logging configuration."""
@@ -204,15 +206,17 @@ def main_ui_loop():
         else:
             print("Invalid choice. Please try again.")
 
-def run_inference(alias: str, messages: List[dict]) -> None:
-    """Run inference using a specified model alias and input messages.
+def run_inference(alias: str, messages: List[dict], max_tokens: int) -> Iterable:
+    """
+    Run inference using a specified model alias and input messages.
 
     Args:
         alias (str): The alias of the model to use for inference.
         messages (List[dict]): A list of messages to send to the model.
+        max_tokens (int): The maximum number of tokens for the response.
 
     Returns:
-        None
+        Iterable: Streaming response chunks.
     """
     manager = FoundryLocalManager(alias)
 
@@ -223,16 +227,12 @@ def run_inference(alias: str, messages: List[dict]) -> None:
     )
 
     # Set the model to use and generate a streaming response
-    stream = client.chat.completions.create(
+    return client.chat.completions.create(
         model=manager.get_model_info(alias).id,
         messages=messages,
-        stream=True
+        stream=True,
+        max_tokens=max_tokens  # Pass the max_tokens parameter
     )
-
-    # Print the streaming response
-    for chunk in stream:
-        if chunk.choices[0].delta.content is not None:
-            print(chunk.choices[0].delta.content, end="", flush=True)
 
 def test_inference_with_light_prompt():
     """Test inference using the 'light' prompt from the configuration."""
@@ -249,7 +249,7 @@ def test_inference_with_light_prompt():
     alias = "phi-3.5-mini"
 
     # Run inference using the public inference function
-    run_inference(alias, messages)
+    run_inference(alias, messages, max_tokens=1000)
 
 def test_inference_with_model_selection():
     """Test inference by selecting a model from the numbered list."""
@@ -281,7 +281,41 @@ def test_inference_with_model_selection():
     ]
 
     # Run inference using the public inference function
-    run_inference(alias, messages)
+    run_inference(alias, messages, max_tokens=1000)
+
+def foundry_bench_inference(models_instance, system_prompt, user_prompt):
+    """
+    Perform Foundry-specific inference using the provided prompts.
+
+    Args:
+        models_instance: Instance of the Models object.
+        system_prompt: The system prompt to send to the model.
+        user_prompt: The user prompt to send to the model.
+
+    Returns:
+        The raw response text streamed from the backend.
+    """
+    # Map messages for Foundry
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+
+    # Submit the request to Foundry and stream the text
+    print("[INFO] Streaming response:")
+    response_text = ""
+    config = load_config()
+    max_tokens = config.get("prompt_sets", {}).get("light", {}).get("max_tokens")  # Retrieve max_tokens from config
+    for chunk in run_inference(models_instance.id, messages, max_tokens=max_tokens):
+        # Extract content from ChatCompletionChunk and append to response_text
+        if hasattr(chunk, 'choices') and chunk.choices:
+            content = chunk.choices[0].delta.content if chunk.choices[0].delta.content else ""
+            print(content, end="", flush=True)  # Stream to console
+            response_text += content
+        else:
+            print("[ERROR] Invalid chunk format.", flush=True)
+
+    return response_text
 
 def main():
     setup_logging()

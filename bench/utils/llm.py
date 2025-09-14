@@ -1,16 +1,12 @@
-import tiktoken
 from datetime import datetime
 from utils.config import load_config
 from utils.bench_generic_openai import list_openai_models
-from utils.bench_foundrylocal import get_all_models_with_cache_state
+from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
 from utils.llm_schema import Model, BenchmarkResult
 from utils.display import display_models_with_rich
 from rich.console import Console
-
-def count_tokens(text, model):
-    """Count tokens in a given text using tiktoken."""
-    encoding = tiktoken.encoding_for_model(model)
-    return len(encoding.encode(text))
+from rich.table import Table
+from utils.shared import count_tokens
 
 def discover_backends():
     """Discover all available backends dynamically."""
@@ -88,10 +84,21 @@ def bench_inference(models_instance, prompt_set_name):
     # Calculate remaining tokens
     max_tokens = prompt_set["max_tokens"]
     user_prompt = prompt_set["user_prompt"]
-    remaining_tokens = max_tokens - count_tokens(user_prompt, models_instance.active_model)
+    system_prompt = prompt_set["system_prompt"]
+    user_prompt_tokens = count_tokens(user_prompt)
+    system_prompt_tokens = count_tokens(system_prompt)
+    remaining_tokens = max_tokens - (user_prompt_tokens + system_prompt_tokens)
 
-    # Populate the system prompt with remaining tokens
-    system_prompt = prompt_set["system_prompt"].replace("{{remaining_tokens}}", str(remaining_tokens))
+    # Calculate average words per token based on the prompts
+    total_words = len(user_prompt.split()) + len(system_prompt.split())
+    total_tokens = user_prompt_tokens + system_prompt_tokens
+    avg_words_per_token = total_words / total_tokens if total_tokens > 0 else 1
+
+    # Calculate remaining words
+    remaining_words = int(remaining_tokens * avg_words_per_token)
+
+    # Populate the system prompt with remaining words
+    system_prompt = system_prompt.replace("{{remaining_words}}", str(remaining_words))
 
     # Print summary to the console
     print("[INFO] Starting inference with the following details:")
@@ -101,27 +108,76 @@ def bench_inference(models_instance, prompt_set_name):
     print(f"       System Prompt: {system_prompt}")
     print(f"       User Prompt: {user_prompt}")
 
-    # Delegate message mapping to the backend-specific method
-    messages = models_instance.map_messages(system_prompt, user_prompt)
+    # Print context window details before inference
+    print("[INFO] Context Window Details:")
+    print(f"       System Prompt Tokens: {system_prompt_tokens}")
+    print(f"       User Prompt Tokens: {user_prompt_tokens}")
+    print(f"       Total Input Tokens: {user_prompt_tokens + system_prompt_tokens}")
+    print(f"       System Prompt Words: {len(system_prompt.split())}")
+    print(f"       User Prompt Words: {len(user_prompt.split())}")
+    print(f"       Average Words per Token: {avg_words_per_token:.2f}")
+    print(f"       Final System Prompt: {system_prompt}")
+
+    # Initialize Rich console
+    console = Console()
+
+    # Create a consolidated Rich table for inference details
+    inference_table = Table(title="[INFO] Inference Details")
+    inference_table.add_column("Field", style="bold cyan")
+    inference_table.add_column("Value", style="bold yellow")
+
+    # Add rows to the inference table
+    inference_table.add_row("Prompt Set", prompt_set_name)
+    inference_table.add_row("Max Tokens", str(max_tokens))
+    inference_table.add_row("Remaining Tokens", str(remaining_tokens))
+    inference_table.add_row("System Prompt", system_prompt)
+    inference_table.add_row("User Prompt", user_prompt)
+    inference_table.add_row("System Prompt Tokens", str(system_prompt_tokens))
+    inference_table.add_row("User Prompt Tokens", str(user_prompt_tokens))
+    inference_table.add_row("Total Input Tokens", str(user_prompt_tokens + system_prompt_tokens))
+    inference_table.add_row("System Prompt Words", str(len(system_prompt.split())))
+    inference_table.add_row("User Prompt Words", str(len(user_prompt.split())))
+    inference_table.add_row("Average Words per Token", f"{avg_words_per_token:.2f}")
+    inference_table.add_row("Final System Prompt", system_prompt)
+
+    # Print the inference details table
+    console.print(inference_table)
 
     # Start timing the inference
     start_time = datetime.utcnow()
 
-    # Submit the request to the backend and stream the text
-    print("[INFO] Streaming response:")
-    response_text = ""
-    for chunk in models_instance.stream_request(messages):
-        print(chunk, end="", flush=True)  # Stream to console
-        response_text += chunk
+    # Call the backend-specific function
+    response_text = foundry_bench_inference(models_instance, system_prompt, user_prompt)
 
     # End timing the inference
     end_time = datetime.utcnow()
     latency_ms = int((end_time - start_time).total_seconds() * 1000)
 
     # Collect stats
-    input_tokens = count_tokens(user_prompt, models_instance.active_model)
-    output_tokens = count_tokens(response_text, models_instance.active_model)
+    input_tokens = count_tokens(user_prompt)
+    output_tokens = count_tokens(response_text)
     total_tokens = input_tokens + output_tokens
+
+    # Calculate tokens per second
+    tokens_per_second = total_tokens / (latency_ms / 1000) if latency_ms > 0 else 0
+
+    # Display benchmark results using Rich table
+    results_table = Table(title="[INFO] Benchmark Results")
+    results_table.add_column("Field", style="bold cyan")
+    results_table.add_column("Value", style="bold yellow")
+
+    # Add rows to the results table
+    results_table.add_row("Input Tokens", str(input_tokens))
+    results_table.add_row("Output Tokens", str(output_tokens))
+    results_table.add_row("Total Tokens", str(total_tokens))
+    results_table.add_row("Latency (ms)", str(latency_ms))
+    results_table.add_row("Tokens per Second", f"{tokens_per_second:.2f}")
+    results_table.add_row("Model", models_instance.id)
+    results_table.add_row("Backend", models_instance.backend)
+    results_table.add_row("Timestamp", start_time.isoformat() + "Z")
+
+    # Print the results table
+    console.print(results_table)
 
     # Create the BenchmarkResult object
     benchmark_result = BenchmarkResult(
@@ -129,11 +185,11 @@ def bench_inference(models_instance, prompt_set_name):
         output_tokens=output_tokens,
         total_tokens=total_tokens,
         latency_ms=latency_ms,
-        model=models_instance.active_model,
-        backend=models_instance.backend_name,
+        model=models_instance.id,  # Use the id attribute from the Model schema
+        backend=models_instance.backend,  # Use the backend attribute from the Model schema
         timestamp=start_time.isoformat() + "Z"
     )
 
-    print("\n[INFO] Inference completed.")
+    console.print("\n[INFO] Inference completed.")
 
     return benchmark_result
