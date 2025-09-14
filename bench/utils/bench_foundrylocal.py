@@ -4,7 +4,6 @@ from .config import load_config
 import argparse
 from rich.console import Console
 from rich.table import Table
-from utils.llm_schema import Model
 
 def setup_logging():
     """Set up logging configuration."""
@@ -144,7 +143,7 @@ def display_models_with_rich(models):
     table.add_column("Loaded", style="bold yellow")
 
     # Sort models: prioritize cached state, then alias groups, then device type
-    models.sort(key=lambda m: (not m.cached, m.alias, m.device != "GPU"))
+    models.sort(key=lambda m: (not m["cached"], m["alias"], m["device"] != "GPU"))
 
     # Assign alternating colors for alias groups
     alias_colors = ["white", "bright_white"]
@@ -152,29 +151,29 @@ def display_models_with_rich(models):
     current_color_index = 0
 
     for index, model in enumerate(models, start=1):
-        if model.alias not in alias_to_color:
-            alias_to_color[model.alias] = alias_colors[current_color_index]
+        if model["alias"] not in alias_to_color:
+            alias_to_color[model["alias"]] = alias_colors[current_color_index]
             current_color_index = (current_color_index + 1) % len(alias_colors)
 
-        base_color = alias_to_color[model.alias]
+        base_color = alias_to_color[model["alias"]]
 
         # Adjust color based on cached state and device type
-        if model.cached:
+        if model["cached"]:
             row_style = f"bold {base_color}"
         else:
             row_style = f"dim {base_color}"
 
-        if model.device == "GPU":
-            row_style = f"bright_green" if model.cached else f"green"
+        if model["device"] == "GPU":
+            row_style = f"bright_green" if model["cached"] else f"green"
 
         table.add_row(
             str(index),
-            model.id,
-            model.alias,
-            model.device,
-            f"{model.size:,}" if model.size else "Unknown",
-            "Yes" if model.cached else "No",
-            "Yes" if model.loaded else "No",
+            model["id"],
+            model["alias"],
+            model["device"],
+            f"{model['size']:,}" if model['size'] else "Unknown",
+            "Yes" if model["cached"] else "No",
+            "Yes" if model["loaded"] else "No",
             style=row_style
         )
 

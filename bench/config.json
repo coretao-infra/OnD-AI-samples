@@ -14,10 +14,12 @@
   "backends": {
     "OpenAI": {
       "api_key": "your-openai-api-key",
-      "endpoint": "https://api.openai.com/v1"
+      "endpoint": "https://api.openai.com/v1",
+      "active": false
     },
     "FoundryLocal": {
-      "alias": "phi-3.5-mini"
+      "alias": "phi-3.5-mini",
+      "active": true
     }
   }
 }

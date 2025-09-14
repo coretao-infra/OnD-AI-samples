@@ -1,19 +1,8 @@
 from utils.config import load_config
+from utils.llm import discover_backends, consolidated_model_list
+from utils.menu import display_main_menu, get_main_menu_choice, handle_main_menu_choice
 from rich.console import Console
 from rich.table import Table
-
-
-def display_menu():
-    console = Console()
-    table = Table(title="Benchmark Menu")
-    table.add_column("Option", justify="center", style="cyan")
-    table.add_column("Description", style="magenta")
-
-    table.add_row("1", "Run Benchmark")
-    table.add_row("2", "View Configuration")
-    table.add_row("3", "Exit")
-
-    console.print(table)
 
 
 def run_benchmark(config):
@@ -25,22 +14,54 @@ def run_benchmark(config):
         console.print(f"[green]Model {model} benchmark completed successfully![/green]")
 
 
+def list_backends():
+    console = Console()
+    console.print("[bold blue]Available Backends:[/bold blue]")
+    backends = discover_backends()
+    for i, backend in enumerate(backends, start=1):
+        console.print(f"[cyan]{i}.[/cyan] {backend}")
+
+
+def list_all_models():
+    console = Console()
+    console.print("[bold blue]Available Models:[/bold blue]")
+    models = consolidated_model_list()
+    for i, model in enumerate(models, start=1):
+        console.print(f"[cyan]{i}.[/cyan] {model}")
+
+
+def select_backend(config):
+    """Allow the user to select a backend from the list."""
+    console = Console()
+    backends = discover_backends()
+
+    if not backends:
+        console.print("[red]No backends available to select.[/red]")
+        return
+
+    console.print("[bold blue]Select a Backend:[/bold blue]")
+    for i, backend in enumerate(backends, start=1):
+        console.print(f"[cyan]{i}.[/cyan] {backend}")
+
+    try:
+        choice = int(input("Enter the number of the backend: "))
+        if 1 <= choice <= len(backends):
+            selected_backend = backends[choice - 1]
+            config["selected_backend"] = selected_backend
+            console.print(f"[green]Selected Backend:[/green] {selected_backend}")
+        else:
+            console.print("[red]Invalid choice. Please try again.[/red]")
+    except ValueError:
+        console.print("[red]Invalid input. Please enter a number.[/red]")
+
+
 if __name__ == "__main__":
     try:
         config = load_config()
         while True:
-            display_menu()
-            choice = input("Enter your choice: ")
-            if choice == "1":
-                run_benchmark(config)
-            elif choice == "2":
-                console = Console()
-                console.print("[bold green]Loaded Configuration:[/bold green]")
-                console.print(config)
-            elif choice == "3":
-                print("Exiting...")
+            display_main_menu()
+            choice = get_main_menu_choice()
+            if not handle_main_menu_choice(choice, config):
                 break
-            else:
-                print("Invalid choice. Please try again.")
     except Exception as e:
         print("Error:", e)
