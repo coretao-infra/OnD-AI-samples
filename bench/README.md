@@ -32,8 +32,9 @@ This project is designed to benchmark different LLM models using a menu-driven U
 - [ ] Build the menu-driven UI in `menu.py`.
 - [ ] Set up logging in `logging.py` for standardized log formatting and levels.
 - [ ] Validate and utilize `config.json` for backend and model configurations.
-- [ ] Add unit tests in a `tests` folder.
 - [ ] Write detailed documentation in this `README.md` for contributing and advanced usage.
+- [ ] Add progress indicator for caching models.
+  - Implement a proper progress indicator to show the status of caching a model in the Foundry Local Model Manager.
 
 ## Notes
 - Ensure the virtual environment is activated before running any scripts.
