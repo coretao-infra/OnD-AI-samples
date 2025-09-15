@@ -1,7 +1,10 @@
-# Bench Project
+# LLM Benchmarking Scripts
+![Repo Banner](../assets/CoryLabScene-Small.png)
 
 ## Overview
 This project is designed to benchmark different LLM models using a menu-driven UI. It allows users to compare models based on various metrics such as token counts, response time, and more. The project is modular and extensible, making it easy to add new features and models.
+
+The initial project is focused on Azure Foundry Local but can be expanded to support more models.
 
 ## Requisites
 
