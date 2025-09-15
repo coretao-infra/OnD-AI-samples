@@ -54,3 +54,34 @@ def display_models_with_rich(models: List[Model]):
         )
 
     console.print(table)
+
+def display_benchmark_result_with_rich(benchmark_result):
+    """
+    Display benchmark results in a nicely formatted table using Rich.
+    Accepts a BenchmarkResult object or dict.
+    """
+    console = Console()
+    table = Table(title="Benchmark Results")
+
+    table.add_column("Field", style="bold cyan")
+    table.add_column("Value", style="bold yellow")
+
+    # Support both object and dict
+    result = benchmark_result.to_dict() if hasattr(benchmark_result, 'to_dict') else benchmark_result
+
+    table.add_row("Input Tokens", str(result.get("input_tokens", "")))
+    table.add_row("Output Tokens", str(result.get("output_tokens", "")))
+    table.add_row("Total Tokens", str(result.get("total_tokens", "")))
+    table.add_row("Latency (ms)", str(result.get("latency_ms", "")))
+    tokens_per_second = (result.get("total_tokens", 0) / (result.get("latency_ms", 1) / 1000)) if result.get("latency_ms", 0) > 0 else 0
+    table.add_row("Tokens per Second", f"{tokens_per_second:.2f}")
+    table.add_row("Model", str(result.get("model", "")))
+    table.add_row("Backend", str(result.get("backend", "")))
+    table.add_row("GPU Name", str(result.get("gpu_name", "")))
+    table.add_row("CPU Name", str(result.get("cpu_name", "")))
+    table.add_row("NPU Name", str(result.get("npu_name", "")))
+    table.add_row("System Memory (GB)", str(result.get("system_memory_gb", "")))
+    table.add_row("Model Loaded", "Yes" if result.get("is_model_loaded", False) else "No")
+    table.add_row("Timestamp", str(result.get("timestamp", "")))
+
+    console.print(table)

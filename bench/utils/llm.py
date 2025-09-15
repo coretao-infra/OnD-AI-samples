@@ -160,6 +160,13 @@ def bench_inference(models_instance, prompt_set_name):
     # Populate the system prompt with remaining words
     system_prompt = system_prompt.replace("{{remaining_words}}", str(remaining_words))
 
+    # Query hardware details
+    hardware_info = query_processors_accelerators_gpus()
+    gpu_name = hardware_info["GPU"][0]["Name"] if hardware_info["GPU"] else "Unknown GPU"
+    cpu_name = hardware_info["Processor"][0]["Name"] if hardware_info["Processor"] else "Unknown CPU"
+    npu_name = hardware_info["ComputeAccelerator"][0]["Name"] if hardware_info["ComputeAccelerator"] else "Unknown NPU"
+    system_memory_gb = query_system_ram() or "Unknown RAM"
+
     # Print summary to the console
     print("[INFO] Starting inference with the following details:")
     print(f"       Prompt Set: {prompt_set_name}")
@@ -167,40 +174,6 @@ def bench_inference(models_instance, prompt_set_name):
     print(f"       Remaining Tokens: {remaining_tokens}")
     print(f"       System Prompt: {system_prompt}")
     print(f"       User Prompt: {user_prompt}")
-
-    # Print context window details before inference
-    print("[INFO] Context Window Details:")
-    print(f"       System Prompt Tokens: {system_prompt_tokens}")
-    print(f"       User Prompt Tokens: {user_prompt_tokens}")
-    print(f"       Total Input Tokens: {user_prompt_tokens + system_prompt_tokens}")
-    print(f"       System Prompt Words: {len(system_prompt.split())}")
-    print(f"       User Prompt Words: {len(user_prompt.split())}")
-    print(f"       Average Words per Token: {avg_words_per_token:.2f}")
-    print(f"       Final System Prompt: {system_prompt}")
-
-    # Initialize Rich console
-    console = Console()
-
-    # Create a consolidated Rich table for inference details
-    inference_table = Table(title="[INFO] Inference Details")
-    inference_table.add_column("Field", style="bold cyan")
-    inference_table.add_column("Value", style="bold yellow")
-
-    # Add rows to the inference table
-    inference_table.add_row("Prompt Set", prompt_set_name)
-    inference_table.add_row("Max Tokens", str(max_tokens))
-    inference_table.add_row("Remaining Tokens", str(remaining_tokens))
-    inference_table.add_row("System Prompt", system_prompt)
-    inference_table.add_row("User Prompt", user_prompt)
-    inference_table.add_row("System Prompt Tokens", str(system_prompt_tokens))
-    inference_table.add_row("User Prompt Tokens", str(user_prompt_tokens))
-    inference_table.add_row("Total Input Tokens", str(user_prompt_tokens + system_prompt_tokens))
-    inference_table.add_row("System Prompt Words", str(len(system_prompt.split())))
-    inference_table.add_row("User Prompt Words", str(len(user_prompt.split())))
-    inference_table.add_row("Average Words per Token", f"{avg_words_per_token:.2f}")
-
-    # Print the inference details table
-    console.print(inference_table)
 
     # Start timing the inference
     start_time = datetime.utcnow()
@@ -217,47 +190,26 @@ def bench_inference(models_instance, prompt_set_name):
     output_tokens = count_tokens(response_text)
     total_tokens = input_tokens + output_tokens
 
-    # Calculate tokens per second
-    tokens_per_second = total_tokens / (latency_ms / 1000) if latency_ms > 0 else 0
-
-    # Display benchmark results using Rich table
-    results_table = Table(title="[INFO] Benchmark Results")
-    results_table.add_column("Field", style="bold cyan")
-    results_table.add_column("Value", style="bold yellow")
-
-    # Define `is_model_loaded` earlier in the function
-    is_model_loaded = models_instance.loaded  # Assuming `loaded` is a boolean attribute of the model instance
-
-    # Add rows to the results table
-    results_table.add_row("Input Tokens", str(input_tokens))
-    results_table.add_row("Output Tokens", str(output_tokens))
-    results_table.add_row("Total Tokens", str(total_tokens))
-    results_table.add_row("Latency (ms)", str(latency_ms))
-    results_table.add_row("Tokens per Second", f"{tokens_per_second:.2f}")
-    results_table.add_row("Model", models_instance.id)
-    results_table.add_row("Backend", models_instance.backend)
-    results_table.add_row("Model Loaded", "Yes" if is_model_loaded else "No")  # Display if the model was loaded
-    results_table.add_row("Timestamp", start_time.isoformat() + "Z")
-
-    # Print the results table
-    console.print(results_table)
-
     # Create the BenchmarkResult object
     benchmark_result = BenchmarkResult(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         total_tokens=total_tokens,
         latency_ms=latency_ms,
-        model=models_instance.id,  # Use the id attribute from the Model schema
-        backend=models_instance.backend,  # Use the backend attribute from the Model schema
+        model=models_instance.id,
+        backend=models_instance.backend,
         timestamp=start_time.isoformat() + "Z",
-        is_model_loaded=is_model_loaded  # New field to capture the loaded state
+        is_model_loaded=models_instance.loaded,
+        gpu_name=gpu_name,
+        cpu_name=cpu_name,
+        npu_name=npu_name,
+        system_memory_gb=system_memory_gb
     )
 
     # Append the result to the file
-    append_benchmark_result(benchmark_result.__dict__)
+    append_benchmark_result(benchmark_result.to_dict())
 
-    console.print("\n[INFO] Inference completed.")
+    print("\n[INFO] Inference completed.")
 
     return benchmark_result
 
