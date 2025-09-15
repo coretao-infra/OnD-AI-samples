@@ -209,6 +209,16 @@ This file contains a list of all benchmark runs, including:
 
 ## FUTURE
 - [ ] Implement queuing for benchmarking tasks.
+- [ ] Add support for Ollama framework integration
+- [ ] Add support for additional backend engines:
+  - [ ] llama.cpp 
+  - [ ] vLLM 
+- [ ] Add Cloud-based AI endpoints for comparison benchmarking:
+  - [ ] Azure OpenAI Service
+  - [ ] Azure AI Foundry APIs
+  - [ ] OpenAI API
+  - [ ] Anthropic Claude
+  - [ ] Google Gemini
 
 ## Notes
 - Ensure the virtual environment is activated before running any scripts.
