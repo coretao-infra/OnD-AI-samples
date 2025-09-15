@@ -3,20 +3,46 @@
 ## Overview
 This project is designed to benchmark different LLM models using a menu-driven UI. It allows users to compare models based on various metrics such as token counts, response time, and more. The project is modular and extensible, making it easy to add new features and models.
 
+## Requisites
+
+### Software Requirements
+- Python 3.10 or newer
+   https://www.python.org/downloads/windows/
+- Foundry Local AI:
+   https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/get-started#option-1-quick-cli-setup
+- Git for cloning the repository
+   https://git-scm.com/downloads/win
+
+### Hardware Requirements
+- At least 32+ GB RAM
+- GPU with DirectML support (optional but recommended)
+- NPU/dedicated AI accelerator (optional)
+
+### Python Packages
+The following key packages are referenced within the codebase.
+- `rich`: For enhanced console output
+- `wmi`: For querying system hardware information
+- `tiktoken`: For token counting
+- `requests`: For API interactions
 
 ## How to Run Benchmarks
 1. **Clone the repository:**
    ```powershell
    git clone <repository-url>
-   cd OnD-AI-samples/bench
+   cd <repo-clone-path>/bench
    ```
 
-2. **Set up the virtual environment:**
+2. **Create a Python virtual environment:**
+   ```powershell
+   python -m venv .venv
+   ```
+
+3. **Activate the Python virtual environment:**
    ```powershell
    .\.venv\Scripts\Activate.ps1  # For Windows
    ```
 
-3. **Install dependencies:**
+4. **Install dependencies:**
    ```powershell
    pip install -r requirements.txt
    ```
@@ -51,6 +77,71 @@ When you run `python -m app`, you'll see a menu like this:
 ### To view hardware info:
 Select option `6` to display details about your CPU, NPU, GPU, and system RAM.
 
+## Managing Foundry Models
+
+The benchmark tool uses Foundry Local models. You can manage these models directly using the built-in utility:
+
+```powershell
+python -m utils.bench_foundrylocal
+```
+
+This launches the Foundry Local Model Manager:
+
+```
+Foundry Local Model Manager
+1. List all models with cache state
+2. Add a model to cache
+3. Remove a model from cache
+4. Display raw catalog models
+5. Display raw cached models
+6. Display raw loaded models
+7. Exit
+8. Test inference with model selection
+Enter your choice: 1
+```
+
+When you select option `1`, you'll see all available models with their details:
+
+```
+                                                 Foundry Local Models                                                  
+┏━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃ No. ┃ ID                                ┃ Alias                ┃ Device ┃ Backend      ┃ Size (MB) ┃ Cached ┃ Loaded ┃
+┡━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│   1 │ Phi-3.5-mini-instruct-generic-gpu │ phi-3.5-mini         │ GPU    │ FoundryLocal │     2,211 │ Yes    │ No     │
+│   2 │ Phi-3.5-mini-instruct-generic-cpu │ phi-3.5-mini         │ CPU    │ FoundryLocal │     2,590 │ Yes    │ No     │
+│   3 │ Phi-4-generic-gpu                 │ phi-4                │ GPU    │ FoundryLocal │     8,570 │ Yes    │ No     │
+│   4 │ Phi-4-generic-cpu                 │ phi-4                │ CPU    │ FoundryLocal │    10,403 │ Yes    │ No     │
+│   5 │ Phi-4-mini-reasoning-generic-gpu  │ phi-4-mini-reasoning │ GPU    │ FoundryLocal │     3,225 │ Yes    │ No     │
+│  ... │ ...                              │ ...                  │ ...    │ ...          │       ... │ ...    │ ...    │
+└─────┴───────────────────────────────────┴──────────────────────┴────────┴──────────────┴───────────┴────────┴────────┘
+```
+
+### Understanding the Model List
+
+- **ID**: The unique identifier for the model
+- **Alias**: A shorter, user-friendly name
+- **Device**: Whether the model runs on GPU or CPU
+- **Size**: Size in MB (larger models require more RAM)
+- **Cached**: Whether the model is already downloaded to your device
+- **Loaded**: Whether the model is currently loaded in memory
+
+### Working with Models
+
+1. **Before benchmarking**, you should cache the models you want to test:
+   - Choose option `2` from the menu
+   - Enter the number of the model to cache
+   - Wait for the download to complete (larger models take longer)
+
+2. **To free up space**, you can remove models from cache:
+   - Choose option `3` from the menu
+   - Enter the number of the model to remove
+
+3. **For quick testing**, use option `8` to test a model before full benchmarking
+
+For more detailed information on Foundry Local, refer to the [official documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/get-started).
+
+For more information on Foundry Local and managing models, see the [official documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/get-started).
+
 ## Where is Benchmark Output Saved?
 Benchmark results are automatically saved to:
 
@@ -63,8 +154,8 @@ This file contains a list of all benchmark runs, including:
 - Device type (CPU, GPU, NPU, etc.)
 - Backend used
 - Token counts
-- Latency
-- Hardware details (CPU, GPU, NPU names, system RAM)
+- Latency (time it took to run test inference)
+- Hardware details 
 - Silicon type (CPU, GPU, NPU, Remote, Cloud)
 - Timestamp
 
@@ -101,7 +192,7 @@ This file contains a list of all benchmark runs, including:
 - [x] Build the menu-driven UI in `menu.py`.
 - [ ] Set up logging in `logging.py` for standardized log formatting and levels.
 - [x] Validate and utilize `config.json` for backend and model configurations.
-- [ ] Write detailed documentation in this `README.md` for contributing and advanced usage.
+- [X] Write detailed documentation in this `README.md` for contributing and advanced usage.
 - [ ] Add progress indicator for caching models.
   - Implement a proper progress indicator to show the status of caching a model in the Foundry Local Model Manager.
 - [x] Ensure viewing the configuration uses a canonical parse via `config.py` instead of a raw dump.
