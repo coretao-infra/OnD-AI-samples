@@ -1,6 +1,6 @@
 # OnD-AI-samples: On-Device AI Sample Projects
 
-![Repo Banner](./samples/image-edit/assets/taocorebanner.png)
+![Repo Banner](./assets/CoryLabScene-Small.png)
 
 A collection of sample projects demonstrating on-device AI capabilities across different applications, from computer vision to natural language processing. These samples run locally on Windows machines without requiring cloud services (after initial model download).
 
