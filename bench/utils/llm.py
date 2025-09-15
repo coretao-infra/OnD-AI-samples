@@ -190,6 +190,21 @@ def bench_inference(models_instance, prompt_set_name):
     output_tokens = count_tokens(response_text)
     total_tokens = input_tokens + output_tokens
 
+    # Determine silicon type
+    device_type = getattr(models_instance, 'device', None)
+    if device_type == "NPU":
+        silicon = "NPU"
+    elif device_type == "GPU":
+        silicon = "GPU"
+    elif device_type == "CPU":
+        silicon = "CPU"
+    elif device_type == "Remote":
+        silicon = "Remote"
+    elif device_type == "Cloud":
+        silicon = "Cloud"
+    else:
+        silicon = "Unknown"
+
     # Create the BenchmarkResult object
     benchmark_result = BenchmarkResult(
         input_tokens=input_tokens,
@@ -203,7 +218,8 @@ def bench_inference(models_instance, prompt_set_name):
         gpu_name=gpu_name,
         cpu_name=cpu_name,
         npu_name=npu_name,
-        system_memory_gb=system_memory_gb
+        system_memory_gb=system_memory_gb,
+        silicon=silicon
     )
 
     # Append the result to the file
