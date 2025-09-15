@@ -2,3 +2,4 @@ foundry-local-sdk
 rich
 openai
 tiktoken
+wmi

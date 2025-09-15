@@ -44,6 +44,8 @@ This project is designed to benchmark different LLM models using a menu-driven U
     - Number of tokens generated so far.
     - Tokens per second so far.
 - [ ] Save whether the model was loaded or not as part of the benchmark result, so it is captured in the output.
+- [ ] Add functionality to query shared and dedicated VRAM accurately.
+- [ ] Fix system RAM detection logic to ensure proper reporting.
 
 ## FUTURE
 - [ ] Implement queuing for benchmarking tasks.

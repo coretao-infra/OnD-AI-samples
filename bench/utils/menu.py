@@ -68,6 +68,7 @@ def display_main_menu():
     table.add_row("3", "List Models")
     table.add_row("4", "Run Benchmark")
     table.add_row("5", "List All Available Models")
+    table.add_row("6", "Display CPU/NPU/GPU Info")
     table.add_row("9", "Exit")
 
     console.print(table)
@@ -108,6 +109,31 @@ def handle_main_menu_choice(choice, config, consolidated_model_list, list_backen
             print("Invalid input. Please enter a number.")
     elif choice == "5":
         list_all_models()
+    elif choice == "6":
+        from utils.llm import query_processors_accelerators_gpus, query_system_ram
+        info = query_processors_accelerators_gpus()
+        system_ram = query_system_ram()
+
+        from rich.console import Console
+        console = Console()
+
+        console.print("[bold blue]CPU Info:[/bold blue]")
+        for cpu in info.get("Processor", []):
+            console.print(f"[green]Name:[/green] {cpu.get('Name')} | [yellow]Cores:[/yellow] {cpu.get('Cores')} | [yellow]Threads:[/yellow] {cpu.get('Threads')}")
+
+        console.print("[bold blue]NPU/Compute Accelerator Info:[/bold blue]")
+        for npu in info.get("ComputeAccelerator", []):
+            console.print(f"[green]Name:[/green] {npu.get('Name')} | [yellow]Description:[/yellow] {npu.get('Description')}")
+
+        console.print("[bold blue]GPU Info:[/bold blue]")
+        for gpu in info.get("GPU", []):
+            console.print(f"[green]Name:[/green] {gpu.get('Name')} | [yellow]VRAM:[/yellow] {gpu.get('DedicatedMemory_MB')} MB | [yellow]VideoProcessor:[/yellow] {gpu.get('VideoProcessor')} | [yellow]DriverVersion:[/yellow] {gpu.get('DriverVersion')}")
+
+        console.print("[bold blue]System RAM:[/bold blue]")
+        if system_ram:
+            console.print(f"[green]Total RAM:[/green] {system_ram} GB")
+        else:
+            console.print("[red]System RAM detection failed.[/red]")
     elif choice == "9":
         print("Exiting...")
         return False

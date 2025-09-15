@@ -280,8 +280,17 @@ def test_inference_with_model_selection():
         {"role": "user", "content": light_prompt}
     ]
 
-    # Run inference using the public inference function
-    run_inference(alias, messages, max_tokens=1000)
+    # Run inference and print the streamed output
+    print("\n[INFO] Streaming response:")
+    response_text = ""
+    for chunk in run_inference(alias, messages, max_tokens=1000):
+        if hasattr(chunk, 'choices') and chunk.choices:
+            content = chunk.choices[0].delta.content if chunk.choices[0].delta.content else ""
+            print(content, end="", flush=True)
+            response_text += content
+        else:
+            print("[ERROR] Invalid chunk format.", flush=True)
+    print()  # Newline after streaming
 
 def foundry_bench_inference(models_instance, system_prompt, user_prompt):
     """
