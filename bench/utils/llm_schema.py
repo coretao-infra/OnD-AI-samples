@@ -27,7 +27,7 @@ class BenchmarkResult:
     Schema for the benchmark return object.
     Excludes the incoming/result text, which should be streamed to the console.
     """
-    def __init__(self, input_tokens, output_tokens, total_tokens, latency_ms, model, backend, timestamp, is_model_loaded, gpu_name, cpu_name, npu_name, system_memory_gb):
+    def __init__(self, input_tokens, output_tokens, total_tokens, latency_ms, model, backend, timestamp, is_model_loaded, gpu_name, cpu_name, npu_name, system_memory_gb, silicon):
         self.input_tokens = input_tokens  # Number of tokens in the input
         self.output_tokens = output_tokens  # Number of tokens in the output
         self.total_tokens = total_tokens  # Total tokens used (input + output)
@@ -40,6 +40,7 @@ class BenchmarkResult:
         self.cpu_name = cpu_name  # Name of the CPU used
         self.npu_name = npu_name  # Name of the NPU used
         self.system_memory_gb = system_memory_gb  # Amount of system memory in GB
+        self.silicon = silicon  # Type of silicon used: CPU, NPU, GPU, Remote, Cloud
 
     def to_dict(self):
         """Convert the benchmark result object to a dictionary."""
@@ -56,4 +57,5 @@ class BenchmarkResult:
             "cpu_name": self.cpu_name,
             "npu_name": self.npu_name,
             "system_memory_gb": self.system_memory_gb,
+            "silicon": self.silicon,
         }

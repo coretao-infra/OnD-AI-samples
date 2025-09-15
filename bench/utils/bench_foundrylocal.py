@@ -46,10 +46,19 @@ def get_model_info(alias_or_model_id):
 
 def create_model_object(model, cached_models, loaded_models, backend):
     """Helper method to create a Model object with cache and load state."""
+    device_id = model.id.lower()
+    if "npu" in device_id or "qnn" in device_id:
+        device = "NPU"
+    elif "gpu" in device_id:
+        device = "GPU"
+    elif "cpu" in device_id:
+        device = "CPU"
+    else:
+        device = "Unknown"
     return Model(
         id=model.id,
         alias=model.alias,
-        device="GPU" if "gpu" in model.id.lower() else "CPU" if "cpu" in model.id.lower() else "Unknown",
+        device=device,
         size=model.file_size_mb,
         cached=model.id in cached_models,
         loaded=model.id in loaded_models,
@@ -70,18 +79,27 @@ def get_all_models_with_cache_state():
     loaded_models = {model.id for model in manager.list_loaded_models()}
 
     # Build and return a list of Model objects
-    return [
-        Model(
+    models = []
+    for model in catalog:
+        device_id = model.id.lower()
+        if "npu" in device_id or "qnn" in device_id:
+            device = "NPU"
+        elif "gpu" in device_id:
+            device = "GPU"
+        elif "cpu" in device_id:
+            device = "CPU"
+        else:
+            device = "Unknown"
+        models.append(Model(
             id=model.id,
             alias=model.alias,
-            device="GPU" if "gpu" in model.id.lower() else "CPU" if "cpu" in model.id.lower() else "Unknown",
+            device=device,
             size=model.file_size_mb,
             cached=model.id in cached_models,
             loaded=model.id in loaded_models,
             backend="FoundryLocal"
-        )
-        for model in catalog
-    ]
+        ))
+    return models
 
 def manage_model_cache(action, alias_or_model_id):
     """Add or remove models to/from cache.
