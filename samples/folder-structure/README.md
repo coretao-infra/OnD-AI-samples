@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<p align="center">
+	<img src="../../assets/CoryLabScene-Small.png" alt="Project Banner" width="400" />
+</p>
+
+# Folder Structure Foundry Local Example
+
+**Explore, analyze, and summarize your local file system using Microsoft Foundry Local AI models.**
+
+This interactive Next.js app lets you:
+- Enter any directory path on your machine
+- Instantly list all files and folders (recursively)
+- Select which cached Foundry Local model to use for analysis
+- Generate a rich, AI-powered report on the file structure, types, and context
+
+All AI runs are local—no cloud calls, no data leaves your device.
+
+
 
 ## Getting Started
 
-First, run the development server:
+### Requirements
+- Node.js 18+
+- Foundry Local installed and running (see [Foundry Local docs](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/overview))
+- At least one model cached locally (run `foundry cache list`)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### How to run
+1. Install dependencies:
+	```bash
+	npm install
+	```
+2. Start the dev server:
+	```bash
+	npm run dev
+	```
+3. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features
+- **File Explorer UI:** Enter a path, browse files/folders, see instant results
+- **Model Selection:** Choose from your locally cached Foundry models (CPU/GPU/NPU)
+- **AI Report Generation:** Get a detailed, structured summary of your file tree
+- **Performance Metrics:** See prompt size, model info, response size, and throughput
+- **Markdown Rendering:** Beautiful, readable output with tables, lists, and code blocks
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- [Next.js Documentation](https://nextjs.org/docs) — framework powering the UI
+- [Foundry Local SDK Reference](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/sdk-reference) — manage, cache, and run local AI models
+- [Foundry Local CLI Reference](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/cli-reference) — command-line tools for model management
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing / TODO
+- Add dropdown for cached model selection
+- Show model details (context window, token limits)
+- Improve response summary formatting
+- Add prompt customization fields
+- Expand documentation and usage examples
