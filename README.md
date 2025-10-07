@@ -34,10 +34,31 @@ A collection of sample projects demonstrating on-device AI capabilities across d
 - Voice Activity Detection for smart utterance segmentation
 - [View detailed README](/samples/speech/README.md)
 
-### 🏗️ Next.js Sample
-[`/samples/folder-structure`](/samples/folder-structure) - Basic Next.js project structure for web applications.
-- Starting point for web-based AI applications
-- [View detailed README](/samples/folder-structure/README.md)
+
+### 📁 Folder Structure Foundry Local Sample
+[`/samples/folder-structure`](/samples/folder-structure) — Explore and analyze your local file system using Foundry Local AI models in a modern Next.js web app.
+
+**Features:**
+- Enter any directory path and instantly list all files/folders (recursively)
+- Select which cached Foundry Local model to use for analysis (coming soon)
+- Generate a rich, AI-powered report on the file structure, types, and context
+- See performance metrics: prompt size, model info, response size, throughput
+- All AI runs are local—no cloud calls, no data leaves your device
+
+**How to Run:**
+```powershell
+./run-folder-structure-foundry.ps1
+```
+This script installs dependencies and launches the Next.js app for folder structure analysis. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+**Requirements:**
+- Node.js 18+
+- Foundry Local installed and running
+- At least one model cached locally (run `foundry cache list`)
+
+**Learn More:**
+- [Folder Structure Sample README](/samples/folder-structure/README.md)
+- [Foundry Local SDK Reference](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/sdk-reference)
 
 ## 🚀 Getting Started
 
