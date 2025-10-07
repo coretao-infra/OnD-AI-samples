@@ -45,41 +45,38 @@ A collection of sample projects demonstrating on-device AI capabilities across d
 - See performance metrics: prompt size, model info, response size, throughput
 - All AI runs are local—no cloud calls, no data leaves your device
 
-**How to Run:**
+## 🚀 How to Run the Main Samples
+
+Use these PowerShell scripts from the repository root for instant startup (handles dependencies and environment setup):
+
+### Folder Structure Foundry Local
 ```powershell
 ./run-folder-structure-foundry.ps1
 ```
-This script installs dependencies and launches the Next.js app for folder structure analysis. Open [http://localhost:3000](http://localhost:3000) in your browser.
+- Opens a Next.js app for interactive folder analysis using local LLMs
+- Requires Node.js 18+ and Foundry Local setup
+- Output at http://localhost:3000
 
-**Requirements:**
-- Node.js 18+
-- Foundry Local installed and running
-- At least one model cached locally (run `foundry cache list`)
+### LLM Benchmarking Tool
+```powershell
+./run-bench.ps1
+```
+- Sets up Python venv and runs the CLI benchmarking tool entirely locally
+- Requires Python 3.9+ and Foundry Local
 
-**Learn More:**
-- [Folder Structure Sample README](/samples/folder-structure/README.md)
-- [Foundry Local SDK Reference](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/sdk-reference)
+### Background Remover
+```powershell
+./run-image-edit.ps1
+```
+- Installs all required packages & lets you remove backgrounds (GUI or CLI mode)
 
-## 🚀 Getting Started
+### Live Captions
+```powershell
+./run-speech.ps1
+```
+- Starts the real-time speech transcription terminal app
 
-Each sample project contains its own README with specific instructions, but most follow a similar setup pattern:
-
-1. **Prerequisites**
-   - Windows 10/11
-   - Python 3.9+ (for Python projects)
-   - Node.js/npm (for web projects)
-   - Optional: GPU with DirectML support for acceleration
-
-2. **Common Setup (Python projects)**
-   ```powershell
-   cd <project-directory>
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   pip install -r requirements.txt
-   ```
-
-3. **Run the Sample**
-   - Each sample has specific run instructions in its README
+> Each script automates all dependency management and virtual environment handling for a seamless out-of-the-box experience. For advanced usage, refer to the sample README in each folder.
 
 ## ⚡ Quick Start Scripts
 
