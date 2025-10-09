@@ -221,6 +221,8 @@ def bench_inference(models_instance, prompt_set_name):
 
 if platform.system() == "Windows":
     from utils.hwinfo_win import query_processors_accelerators_gpus, query_system_ram
+elif platform.system() == "Darwin":
+    from utils.hwinfo_mac import query_processors_accelerators_gpus, query_system_ram
 else:
     def query_processors_accelerators_gpus():
         return {"Processor": [], "ComputeAccelerator": [], "GPU": []}
