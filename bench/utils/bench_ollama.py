@@ -39,7 +39,7 @@ def run_inference(model_id: str, messages, max_tokens: int):
         max_tokens=max_tokens
     )
 
-def ollama_bench_inference(models_instance, system_prompt, user_prompt, max_tokens=1000):
+def ollama_bench_inference(models_instance, system_prompt, user_prompt, max_tokens):
     """Stream inference using Ollama local server via OpenAI client."""
     messages = [
         {"role": "system", "content": system_prompt},

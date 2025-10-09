@@ -267,7 +267,7 @@ def test_inference_with_light_prompt():
     alias = "phi-3.5-mini"
 
     # Run inference using the public inference function
-    run_inference(alias, messages, max_tokens=1000)
+    run_inference(alias, messages, max_tokens)
 
 def test_inference_with_model_selection():
     """Test inference by selecting a model from the numbered list."""
@@ -301,7 +301,7 @@ def test_inference_with_model_selection():
     # Run inference and print the streamed output
     print("\n[INFO] Streaming response:")
     response_text = ""
-    for chunk in run_inference(alias, messages, max_tokens=1000):
+    for chunk in run_inference(alias, messages, max_tokens):
         if hasattr(chunk, 'choices') and chunk.choices:
             content = chunk.choices[0].delta.content if chunk.choices[0].delta.content else ""
             print(content, end="", flush=True)
