@@ -2,6 +2,7 @@ from datetime import datetime
 from utils.config import load_config, get_bench_result_path
 from utils.bench_generic_openai import list_openai_models
 from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
+from utils.bench_ollama import get_all_ollama_models_with_cache_state
 from utils.llm_schema import Model, BenchmarkResult
 from utils.display import display_models_with_rich
 from rich.console import Console
@@ -12,9 +13,26 @@ import os
 import platform
 
 def discover_backends():
-    """Discover all available backends dynamically."""
+    """Discover all available backends dynamically, filtering by platform and runtime availability."""
+    import subprocess
     config = load_config()
-    return list(config.get("backends", {}).keys())
+    backends = config.get("backends", {})
+    filtered = []
+    sys = platform.system()
+    for backend in backends:
+        if backend == "FoundryLocal" and sys != "Windows":
+            continue
+        if backend == "Ollama":
+            # Only include Ollama if running
+            if sys in ("Darwin", "Linux"):
+                try:
+                    subprocess.run([
+                        "curl", "--max-time", "1", "-s", "http://localhost:11434/v1/models"
+                    ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                except Exception:
+                    continue
+        filtered.append(backend)
+    return filtered
 
 def consolidated_model_list():
     """Return a consolidated list of models from all available backends."""
@@ -26,6 +44,8 @@ def consolidated_model_list():
             models.extend(list_openai_models())
         elif backend == "FoundryLocal":
             models.extend(get_all_models_with_cache_state())
+        elif backend == "Ollama":
+            models.extend(get_all_ollama_models_with_cache_state())
 
     return models
 
