@@ -1,40 +1,3 @@
-import wmi
-
-def query_processors_accelerators_gpus():
-    """
-    Query Windows devices for Processor, Compute Accelerator, and GPU using WMI.
-    Returns a dict with lists of device info for each class.
-    """
-    c = wmi.WMI()
-    result = {"Processor": [], "ComputeAccelerator": [], "GPU": []}
-    # Query processors
-    for cpu in c.Win32_Processor():
-        result["Processor"].append({"Name": cpu.Name, "Cores": cpu.NumberOfCores, "Threads": cpu.NumberOfLogicalProcessors})
-    # Query compute accelerators (NPU)
-    for dev in c.Win32_PnPEntity():
-        # Match by PNPClass if available, or by name/description
-        pnp_class = getattr(dev, 'PNPClass', None)
-        if pnp_class == "ComputeAccelerator" or (
-            "Accelerator" in (dev.Name or "") or "Accelerator" in (dev.Description or "") or "NPU" in (dev.Name or "") or "NPU" in (dev.Description or "")
-        ):
-            result["ComputeAccelerator"].append({
-                "Name": dev.Name,
-                "Description": dev.Description,
-                "Manufacturer": getattr(dev, 'Manufacturer', None),
-                "Status": getattr(dev, 'Status', None),
-                "DeviceID": getattr(dev, 'DeviceID', None)
-            })
-    # Query GPUs (Video Controllers)
-    for gpu in c.Win32_VideoController():
-        gpu_info = {
-            "Name": gpu.Name,
-            "Description": gpu.Description,
-            "AdapterRAM_MB": int(gpu.AdapterRAM) // (1024*1024) if gpu.AdapterRAM else None,
-            "VideoProcessor": gpu.VideoProcessor,
-            "DriverVersion": gpu.DriverVersion
-        }
-        result["GPU"].append(gpu_info)
-    return result
 from datetime import datetime
 from utils.config import load_config, get_bench_result_path
 from utils.bench_generic_openai import list_openai_models
@@ -46,6 +9,7 @@ from rich.table import Table
 from utils.shared import count_tokens
 import json
 import os
+import platform
 
 def discover_backends():
     """Discover all available backends dynamically."""
@@ -229,14 +193,10 @@ def bench_inference(models_instance, prompt_set_name):
 
     return benchmark_result
 
-def query_system_ram():
-    """
-    Query the total system RAM using WMI.
-    Returns the total RAM in GB.
-    """
-    c = wmi.WMI()
-    for comp in c.Win32_ComputerSystem():
-        total_ram_bytes = getattr(comp, 'TotalPhysicalMemory', None)
-        if total_ram_bytes:
-            return round(int(total_ram_bytes) / (1024 ** 3), 2)  # Convert bytes to GB
-    return None
+if platform.system() == "Windows":
+    from utils.hwinfo_win import query_processors_accelerators_gpus, query_system_ram
+else:
+    def query_processors_accelerators_gpus():
+        return {"Processor": [], "ComputeAccelerator": [], "GPU": []}
+    def query_system_ram():
+        return None
