@@ -2,7 +2,7 @@ from datetime import datetime
 from utils.config import load_config, get_bench_result_path
 from utils.bench_generic_openai import list_openai_models
 from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
-from utils.bench_ollama import get_all_ollama_models_with_cache_state
+from utils.bench_ollama import get_all_ollama_models_with_cache_state, ollama_bench_inference
 from utils.llm_schema import Model, BenchmarkResult
 from utils.display import display_models_with_rich
 from rich.console import Console
@@ -162,8 +162,14 @@ def bench_inference(models_instance, prompt_set_name):
     # Start timing the inference
     start_time = datetime.utcnow()
 
-    # Call the backend-specific function
-    response_text = foundry_bench_inference(models_instance, system_prompt, user_prompt)
+    # Dispatch to correct inference function
+    backend = getattr(models_instance, 'backend', None)
+    if backend == "FoundryLocal":
+        response_text = foundry_bench_inference(models_instance, system_prompt, user_prompt)
+    elif backend == "Ollama":
+        response_text = ollama_bench_inference(models_instance, system_prompt, user_prompt, max_tokens=max_tokens)
+    else:
+        response_text = f"Backend {backend} not supported for inference."
 
     # End timing the inference
     end_time = datetime.utcnow()
