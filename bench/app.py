@@ -13,8 +13,10 @@ def run_benchmark(config, model):
     console.print(f"[bold blue]Running Benchmark for {model.alias} (ID: {model.id})...[/bold blue]")
 
     # Call bench_inference to perform the actual benchmark
+    from utils.display import display_benchmark_result_with_rich
     try:
-        bench_inference(model, "light")  # Assuming "light" prompt set for now
+        result = bench_inference(model, "light")  # Assuming "light" prompt set for now
+        display_benchmark_result_with_rich(result)
     except Exception as e:
         console.print(f"[red]Benchmark failed: {e}[/red]")
 
