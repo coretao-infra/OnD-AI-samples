@@ -11,26 +11,48 @@ from utils.shared import count_tokens
 import json
 import os
 import platform
+import requests
 
 def discover_backends():
-    """Discover all available backends dynamically, filtering by platform and runtime availability."""
-    import subprocess
+    """Discover all available backends dynamically, filtering by platform and runtime availability."""    
     config = load_config()
     backends = config.get("backends", {})
     filtered = []
     sys = platform.system()
-    for backend in backends:
-        if backend == "FoundryLocal" and sys != "Windows":
+    for backend, backend_cfg in backends.items():
+        if not backend_cfg.get("active", False):
+            print(f"[INFO] Skipping backend '{backend}' (handler={backend_cfg.get('handler')}) because it is not active.")
             continue
-        if backend == "Ollama":
-            # Only include Ollama if running
-            if sys in ("Darwin", "Linux"):
-                try:
-                    subprocess.run([
-                        "curl", "--max-time", "1", "-s", "http://localhost:11434/v1/models"
-                    ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                except Exception:
+        handler = backend_cfg.get("handler")
+        if handler == "FoundryLocal" and sys != "Windows":
+            print(f"[INFO] Skipping backend '{backend}' (handler=FoundryLocal) because platform is not Windows.")
+            continue
+        if handler == "Ollama":
+            endpoint = backend_cfg.get("endpoint_management")
+            if not endpoint:
+                print(f"[INFO] Skipping backend '{backend}' (handler=Ollama) because endpoint_management is missing.")
+                continue  # Require endpoint_management to be present
+            try:
+                resp = requests.get(endpoint, timeout=1)
+                if resp.status_code != 200:
+                    print(f"[INFO] Skipping backend '{backend}' (handler=Ollama) because endpoint_management returned status {resp.status_code}.")
                     continue
+            except Exception as e:
+                print(f"[INFO] Skipping backend '{backend}' (handler=Ollama) due to connection error: {e}")
+                continue
+        if handler == "OpenAI":
+            endpoint = backend_cfg.get("endpoint_management")
+            if not endpoint:
+                print(f"[INFO] Skipping backend '{backend}' (handler=OpenAI) because endpoint_management is missing.")
+                continue
+            try:
+                resp = requests.get(endpoint, timeout=1)
+                if resp.status_code != 200:
+                    print(f"[INFO] Skipping backend '{backend}' (handler=OpenAI) because endpoint_management returned status {resp.status_code}.")
+                    continue
+            except Exception as e:
+                print(f"[INFO] Skipping backend '{backend}' (handler=OpenAI) due to connection error: {e}")
+                continue
         filtered.append(backend)
     return filtered
 

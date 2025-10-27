@@ -13,18 +13,31 @@
     },
   "backends": {
     "OpenAI": {
+      "handler": "OpenAI",
       "api_key": "your-openai-api-key",
       "endpoint": "https://api.openai.com/v1",
+      "endpoint_management": "https://api.openai.com/v1/models",
       "active": false
     },
     "FoundryLocal": {
+      "handler": "FoundryLocal",
       "alias": "phi-3.5-mini",
       "active": true
     },
     "Ollama": {
+      "handler": "Ollama",
       "endpoint": "http://localhost:11434/v1",
       "endpoint_management": "http://localhost:11434/v1/models",
       "api_generate_endpoint": "http://localhost:11434/api/generate",
+      "active": true
+    },
+    "LMStudio": {
+      "handler": "OpenAI",
+      "endpoint": "http://192.168.1.140:1234/v1",
+      "endpoint_management": "http://192.168.1.140:1234/v1/models",
+      "api_chat_endpoint": "http://192.168.1.140:1234/v1/chat/completions",
+      "api_completion_endpoint": "http://192.168.1.140:1234/v1/completions",
+      "api_embedding_endpoint": "http://192.168.1.140:1234/v1/embeddings",
       "active": true
     }
   },
