@@ -16,8 +16,7 @@ def display_main_menu():
 
     table.add_row("1", "Select Backend (Show & Choose)")
     table.add_row("3", "List Models")
-    table.add_row("4", "Run Benchmark")
-    table.add_row("5", "List All Available Models")
+    table.add_row("4", "List cached Models and Benchmark")
     table.add_row("6", "Display CPU/NPU/GPU Info")
     table.add_row("9", "Exit")
 
@@ -27,7 +26,7 @@ def get_main_menu_choice():
     """Prompt the user for a choice from the main menu."""
     return input("Enter your choice: ")
 
-def handle_main_menu_choice(choice, config, consolidated_model_list, backends, list_all_models, run_benchmark):
+def handle_main_menu_choice(choice, config, models, backends, list_all_models, run_benchmark):
     """Handle the user's choice from the main menu."""
     if choice == "1":
         display_backends_with_rich(backends)
@@ -55,8 +54,7 @@ def handle_main_menu_choice(choice, config, consolidated_model_list, backends, l
                 print("Invalid selection. Please try again.")
         except ValueError:
             print("Invalid input. Please enter a number.")
-    elif choice == "5":
-        list_all_models()
+    # Option 5 removed
     elif choice == "6":
         if platform.system() == "Windows":
             from utils.hwinfo_win import query_processors_accelerators_gpus, query_system_ram

@@ -17,6 +17,7 @@
       "api_key": "your-openai-api-key",
       "endpoint": "https://api.openai.com/v1",
       "endpoint_management": "https://api.openai.com/v1/models",
+       "auth_required": true,
       "active": false
     },
     "FoundryLocal": {
@@ -33,11 +34,12 @@
     },
     "LMStudio": {
       "handler": "OpenAI",
-      "endpoint": "http://192.168.1.140:1234/v1",
-      "endpoint_management": "http://192.168.1.140:1234/v1/models",
-      "api_chat_endpoint": "http://192.168.1.140:1234/v1/chat/completions",
-      "api_completion_endpoint": "http://192.168.1.140:1234/v1/completions",
-      "api_embedding_endpoint": "http://192.168.1.140:1234/v1/embeddings",
+      "endpoint": "http://localhost:1234/v1",
+      "endpoint_management": "http://localhost:1234/v1/models",
+      "api_chat_endpoint": "http://localhost:1234/v1/chat/completions",
+      "api_completion_endpoint": "http://localhost:1234/v1/completions",
+      "api_embedding_endpoint": "http://localhost:1234/v1/embeddings",
+      "auth_required": false,
       "active": true
     }
   },

@@ -1,3 +1,18 @@
+from datetime import datetime
+from utils.config import load_config, get_bench_result_path
+from utils.bench_generic_openai import list_openai_models
+from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
+from utils.bench_ollama import get_all_ollama_models_with_cache_state, ollama_bench_inference
+from utils.llm_schema import Model, BenchmarkResult
+from utils.display import display_models_with_rich
+from rich.console import Console
+from rich.table import Table
+from utils.shared import count_tokens
+import json
+import os
+import platform
+import requests
+
 def select_backend(config, backends):
     """Allow the user to select a backend from the list."""
     from rich.console import Console
@@ -19,20 +34,6 @@ def select_backend(config, backends):
             console.print("[red]Invalid choice. Please try again.[/red]")
     except ValueError:
         console.print("[red]Invalid input. Please enter a number.[/red]")
-from datetime import datetime
-from utils.config import load_config, get_bench_result_path
-from utils.bench_generic_openai import list_openai_models
-from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
-from utils.bench_ollama import get_all_ollama_models_with_cache_state, ollama_bench_inference
-from utils.llm_schema import Model, BenchmarkResult
-from utils.display import display_models_with_rich
-from rich.console import Console
-from rich.table import Table
-from utils.shared import count_tokens
-import json
-import os
-import platform
-import requests
 
 def discover_backends():
     """Discover all available backends dynamically, filtering by platform and runtime availability."""    
