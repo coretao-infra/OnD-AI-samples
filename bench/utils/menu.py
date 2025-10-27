@@ -2,7 +2,10 @@ from rich.console import Console
 from rich.table import Table
 
 from utils.display import display_models_with_rich
+from utils.display import display_backends_with_rich
+from utils.llm import select_backend
 import platform
+
 
 def display_main_menu():
     """Display the main menu for the benchmark application."""
@@ -11,8 +14,7 @@ def display_main_menu():
     table.add_column("Option", justify="center", style="cyan")
     table.add_column("Description", style="magenta")
 
-    table.add_row("1", "List Backends")
-    table.add_row("2", "Select Backend")
+    table.add_row("1", "Select Backend (Show & Choose)")
     table.add_row("3", "List Models")
     table.add_row("4", "Run Benchmark")
     table.add_row("5", "List All Available Models")
@@ -25,17 +27,15 @@ def get_main_menu_choice():
     """Prompt the user for a choice from the main menu."""
     return input("Enter your choice: ")
 
-def handle_main_menu_choice(choice, config, consolidated_model_list, list_backends, select_backend, list_all_models, run_benchmark):
+def handle_main_menu_choice(choice, config, consolidated_model_list, backends, list_all_models, run_benchmark):
     """Handle the user's choice from the main menu."""
     if choice == "1":
-        list_backends()
-    elif choice == "2":
-        select_backend(config)
+        display_backends_with_rich(backends)
+        select_backend(config, backends)
     elif choice == "3":
         list_all_models()
     elif choice == "4":
         # Run benchmark with cached model selection
-        models = consolidated_model_list()
         cached_models = [model for model in models if model.cached]
 
         if not cached_models:

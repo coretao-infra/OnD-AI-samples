@@ -1,3 +1,24 @@
+def select_backend(config, backends):
+    """Allow the user to select a backend from the list."""
+    from rich.console import Console
+    console = Console()
+    if not backends:
+        console.print("[red]No backends available to select.[/red]")
+        return
+    # The table is already shown by display_backends_with_rich; just prompt for selection
+    try:
+        choice = int(input("Enter the number of the backend: "))
+        if 1 <= choice <= len(backends):
+            selected_backend = backends[choice - 1]
+            config["selected_backend"] = selected_backend
+            name = selected_backend.get("name", "?")
+            handler = selected_backend.get("handler", "?")
+            endpoint = selected_backend.get("endpoint_management", selected_backend.get("endpoint", ""))
+            console.print(f"[green]Selected Backend:[/green] [bold]{name}[/bold] | [magenta]{handler}[/magenta] | [green]{endpoint}[/green]")
+        else:
+            console.print("[red]Invalid choice. Please try again.[/red]")
+    except ValueError:
+        console.print("[red]Invalid input. Please enter a number.[/red]")
 from datetime import datetime
 from utils.config import load_config, get_bench_result_path
 from utils.bench_generic_openai import list_openai_models
@@ -53,27 +74,29 @@ def discover_backends():
             except Exception as e:
                 print(f"[INFO] Skipping backend '{backend}' (handler=OpenAI) due to connection error: {e}")
                 continue
-        filtered.append(backend)
+        backend_cfg_with_name = dict(backend_cfg)
+        backend_cfg_with_name["name"] = backend
+        filtered.append(backend_cfg_with_name)
     return filtered
 
-def consolidated_model_list():
-    """Return a consolidated list of models from all available backends."""
-    backends = discover_backends()
+def consolidated_model_list(backends):
+    """Return a consolidated list of models from all available backends (passed in)."""
     models = []
-
-    for backend in backends:
-        if backend == "OpenAI":
-            models.extend(list_openai_models())
-        elif backend == "FoundryLocal":
+    for backend_cfg in backends:
+        handler = backend_cfg.get("handler")
+        name = backend_cfg.get("name")
+        if handler == "OpenAI":
+            models.extend(list_openai_models(backend_cfg))
+        elif handler == "FoundryLocal":
             models.extend(get_all_models_with_cache_state())
-        elif backend == "Ollama":
+        elif handler == "Ollama":
             models.extend(get_all_ollama_models_with_cache_state())
-
     return models
 
 def run_model_selection():
     """Display cached models and prompt the user to select one for benchmarking."""
-    models = consolidated_model_list()
+    backends = discover_backends()
+    models = consolidated_model_list(backends)
     cached_models = [model for model in models if model.cached]
 
     if not cached_models:
@@ -94,17 +117,6 @@ def run_model_selection():
             print("Invalid selection. Please try again.")
     except ValueError:
         print("Invalid input. Please enter a number.")
-
-def list_backends():
-    """Display the available backends."""
-    console = Console()
-    backends = discover_backends()
-    if not backends:
-        console.print("[bold red]No backends available.[/bold red]")
-    else:
-        console.print("[bold blue]Available Backends:[/bold blue]")
-        for idx, backend in enumerate(backends, start=1):
-            console.print(f"{idx}. {backend}")
 
 def append_benchmark_result(result):
     """Append a benchmark result to the results file."""

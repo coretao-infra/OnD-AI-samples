@@ -1,3 +1,4 @@
+
 from typing import List
 from rich.console import Console
 from rich.table import Table
@@ -88,5 +89,22 @@ def display_benchmark_result_with_rich(benchmark_result):
     table.add_row("System Memory (GB)", str(result.get("system_memory_gb", "")))
     table.add_row("Model Loaded", "Yes" if result.get("is_model_loaded", False) else "No")
     table.add_row("Timestamp", str(result.get("timestamp", "")))
+
+    console.print(table)
+
+def display_backends_with_rich(backends):
+    """Display backends in a nicely formatted table using Rich."""
+    console = Console()
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Name", style="bold")
+    table.add_column("Handler")
+    table.add_column("Endpoint", overflow="fold")
+
+    for idx, backend_cfg in enumerate(backends, start=1):
+        name = backend_cfg.get("name", "?")
+        handler = backend_cfg.get("handler", "?")
+        endpoint = backend_cfg.get("endpoint_management", "")
+        table.add_row(str(idx), name, handler, endpoint)
 
     console.print(table)

@@ -17,18 +17,15 @@ def _create_model_objects(model_names):
     ]
 
 # this is a placeholder function, we dont need to hit generic openai backends yet, because foundrylocal has its own SDK
-def list_openai_models():
-    """List all available models from OpenAI-compatible backends."""
-    config = load_config()
-    backend_config = config.get("backends", {}).get("OpenAI", {})
-
+def list_openai_models(backend_config):
+    """List all available models from a specific OpenAI-compatible backend config."""
     if not backend_config:
         raise ValueError("OpenAI backend configuration is missing.")
 
-    # Example: Replace with actual OpenAI API call logic
+    # Example: Replace with actual OpenAI API call logic, using backend_config for endpoint/key
+    # For now, just return a static list as before
     model_names = ["gpt-3.5-turbo", "gpt-4"]
 
-    # Return Model objects directly
     return [
         Model(
             id=name,
@@ -37,7 +34,7 @@ def list_openai_models():
             size=None,  # OpenAI models don't expose size
             cached=False,
             loaded=False,
-            backend="OpenAI"
+            backend=backend_config.get("name", "OpenAI")
         )
         for name in model_names
     ]
