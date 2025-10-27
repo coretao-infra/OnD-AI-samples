@@ -67,8 +67,7 @@ def run_inference(model_id: str, messages, max_tokens: int):
                 print(f"\n[{mode}]", end='')
                 current_mode = mode
             print(token, end='', flush=True)
-            if mode == 'responding':
-                parts.append(token)
+            parts.append(token)
         print()  # newline after stream
         return ''.join(parts)
     except Exception as e:
