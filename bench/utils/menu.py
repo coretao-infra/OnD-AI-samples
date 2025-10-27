@@ -3,6 +3,7 @@ from rich.console import Console
 from rich.table import Table
 from utils.llm_schema import Model
 from utils.display import display_models_with_rich
+import platform
 
 def display_models_with_rich(models: List[Model]):
     """Display models in a nicely formatted table using Rich."""
@@ -110,7 +111,16 @@ def handle_main_menu_choice(choice, config, consolidated_model_list, list_backen
     elif choice == "5":
         list_all_models()
     elif choice == "6":
-        from utils.llm import query_processors_accelerators_gpus, query_system_ram
+        if platform.system() == "Windows":
+            from utils.hwinfo_win import query_processors_accelerators_gpus, query_system_ram
+        elif platform.system() == "Darwin":
+            from utils.hwinfo_mac import query_processors_accelerators_gpus, query_system_ram
+        else:
+            def query_processors_accelerators_gpus():
+                return {"Processor": [], "ComputeAccelerator": [], "GPU": []}
+            def query_system_ram():
+                return None
+
         info = query_processors_accelerators_gpus()
         system_ram = query_system_ram()
 

@@ -3,3 +3,4 @@ rich
 openai
 tiktoken
 wmi
+psutil

@@ -1,44 +1,8 @@
-import wmi
-
-def query_processors_accelerators_gpus():
-    """
-    Query Windows devices for Processor, Compute Accelerator, and GPU using WMI.
-    Returns a dict with lists of device info for each class.
-    """
-    c = wmi.WMI()
-    result = {"Processor": [], "ComputeAccelerator": [], "GPU": []}
-    # Query processors
-    for cpu in c.Win32_Processor():
-        result["Processor"].append({"Name": cpu.Name, "Cores": cpu.NumberOfCores, "Threads": cpu.NumberOfLogicalProcessors})
-    # Query compute accelerators (NPU)
-    for dev in c.Win32_PnPEntity():
-        # Match by PNPClass if available, or by name/description
-        pnp_class = getattr(dev, 'PNPClass', None)
-        if pnp_class == "ComputeAccelerator" or (
-            "Accelerator" in (dev.Name or "") or "Accelerator" in (dev.Description or "") or "NPU" in (dev.Name or "") or "NPU" in (dev.Description or "")
-        ):
-            result["ComputeAccelerator"].append({
-                "Name": dev.Name,
-                "Description": dev.Description,
-                "Manufacturer": getattr(dev, 'Manufacturer', None),
-                "Status": getattr(dev, 'Status', None),
-                "DeviceID": getattr(dev, 'DeviceID', None)
-            })
-    # Query GPUs (Video Controllers)
-    for gpu in c.Win32_VideoController():
-        gpu_info = {
-            "Name": gpu.Name,
-            "Description": gpu.Description,
-            "AdapterRAM_MB": int(gpu.AdapterRAM) // (1024*1024) if gpu.AdapterRAM else None,
-            "VideoProcessor": gpu.VideoProcessor,
-            "DriverVersion": gpu.DriverVersion
-        }
-        result["GPU"].append(gpu_info)
-    return result
 from datetime import datetime
 from utils.config import load_config, get_bench_result_path
 from utils.bench_generic_openai import list_openai_models
 from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
+from utils.bench_ollama import get_all_ollama_models_with_cache_state, ollama_bench_inference
 from utils.llm_schema import Model, BenchmarkResult
 from utils.display import display_models_with_rich
 from rich.console import Console
@@ -46,11 +10,29 @@ from rich.table import Table
 from utils.shared import count_tokens
 import json
 import os
+import platform
 
 def discover_backends():
-    """Discover all available backends dynamically."""
+    """Discover all available backends dynamically, filtering by platform and runtime availability."""
+    import subprocess
     config = load_config()
-    return list(config.get("backends", {}).keys())
+    backends = config.get("backends", {})
+    filtered = []
+    sys = platform.system()
+    for backend in backends:
+        if backend == "FoundryLocal" and sys != "Windows":
+            continue
+        if backend == "Ollama":
+            # Only include Ollama if running
+            if sys in ("Darwin", "Linux"):
+                try:
+                    subprocess.run([
+                        "curl", "--max-time", "1", "-s", "http://localhost:11434/v1/models"
+                    ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                except Exception:
+                    continue
+        filtered.append(backend)
+    return filtered
 
 def consolidated_model_list():
     """Return a consolidated list of models from all available backends."""
@@ -62,6 +44,8 @@ def consolidated_model_list():
             models.extend(list_openai_models())
         elif backend == "FoundryLocal":
             models.extend(get_all_models_with_cache_state())
+        elif backend == "Ollama":
+            models.extend(get_all_ollama_models_with_cache_state())
 
     return models
 
@@ -178,8 +162,14 @@ def bench_inference(models_instance, prompt_set_name):
     # Start timing the inference
     start_time = datetime.utcnow()
 
-    # Call the backend-specific function
-    response_text = foundry_bench_inference(models_instance, system_prompt, user_prompt)
+    # Dispatch to correct inference function
+    backend = getattr(models_instance, 'backend', None)
+    if backend == "FoundryLocal":
+        response_text = foundry_bench_inference(models_instance, system_prompt, user_prompt)
+    elif backend == "Ollama":
+        response_text = ollama_bench_inference(models_instance, system_prompt, user_prompt, max_tokens=max_tokens)
+    else:
+        response_text = f"Backend {backend} not supported for inference."
 
     # End timing the inference
     end_time = datetime.utcnow()
@@ -229,14 +219,12 @@ def bench_inference(models_instance, prompt_set_name):
 
     return benchmark_result
 
-def query_system_ram():
-    """
-    Query the total system RAM using WMI.
-    Returns the total RAM in GB.
-    """
-    c = wmi.WMI()
-    for comp in c.Win32_ComputerSystem():
-        total_ram_bytes = getattr(comp, 'TotalPhysicalMemory', None)
-        if total_ram_bytes:
-            return round(int(total_ram_bytes) / (1024 ** 3), 2)  # Convert bytes to GB
-    return None
+if platform.system() == "Windows":
+    from utils.hwinfo_win import query_processors_accelerators_gpus, query_system_ram
+elif platform.system() == "Darwin":
+    from utils.hwinfo_mac import query_processors_accelerators_gpus, query_system_ram
+else:
+    def query_processors_accelerators_gpus():
+        return {"Processor": [], "ComputeAccelerator": [], "GPU": []}
+    def query_system_ram():
+        return None

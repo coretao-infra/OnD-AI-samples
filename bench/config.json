@@ -20,6 +20,10 @@
     "FoundryLocal": {
       "alias": "phi-3.5-mini",
       "active": true
+    },
+    "Ollama": {
+      "endpoint": "http://localhost:11434/v1",
+      "active": true
     }
   },
   "bench_result_path": "output/bench_result.json"
