@@ -9,6 +9,23 @@ stream = chat(
     stream=True
 )
 
+current_mode = None  # 'thinking' or 'responding'
 for chunk in stream:
-    print(chunk['message']['content'], end='', flush=True)
+    msg = getattr(chunk, 'message', None)
+    if not msg:
+        continue
+    content = getattr(msg, 'content', '')
+    thinking = getattr(msg, 'thinking', '')
+    if content:
+        mode = 'responding'
+        token = content
+    elif thinking:
+        mode = 'thinking'
+        token = thinking
+    else:
+        continue
+    if mode != current_mode:
+        print(f"\n[{mode}]", end='')
+        current_mode = mode
+    print(token, end='', flush=True)
 print()

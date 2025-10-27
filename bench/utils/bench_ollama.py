@@ -48,15 +48,27 @@ def run_inference(model_id: str, messages, max_tokens: int):
             stream=True
         )
         parts = []
+        current_mode = None  # 'thinking' or 'responding'
         for chunk in stream:
-            # Expect dict-like access; be defensive
             msg = chunk.get('message') if isinstance(chunk, dict) else getattr(chunk, 'message', None)
-            if msg:
-                content = msg.get('content') if isinstance(msg, dict) else getattr(msg, 'content', '')
-                if content:
-                    # Filter trivial whitespace-only increments
-                    print(content, end='', flush=True)
-                    parts.append(content)
+            if not msg:
+                continue
+            content = msg.get('content') if isinstance(msg, dict) else getattr(msg, 'content', '')
+            thinking = msg.get('thinking') if isinstance(msg, dict) else getattr(msg, 'thinking', '')
+            if content:
+                mode = 'responding'
+                token = content
+            elif thinking:
+                mode = 'thinking'
+                token = thinking
+            else:
+                continue
+            if mode != current_mode:
+                print(f"\n[{mode}]", end='')
+                current_mode = mode
+            print(token, end='', flush=True)
+            if mode == 'responding':
+                parts.append(token)
         print()  # newline after stream
         return ''.join(parts)
     except Exception as e:
