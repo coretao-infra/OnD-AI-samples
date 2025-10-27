@@ -55,13 +55,17 @@ def create_model_object(model, cached_models, loaded_models, backend):
         device = "CPU"
     else:
         device = "Unknown"
+    cached_val = model.id in cached_models
+    loaded_val = model.id in loaded_models
+    cached_val = cached_val if isinstance(cached_val, bool) else 'Unknown'
+    loaded_val = loaded_val if isinstance(loaded_val, bool) else 'Unknown'
     return Model(
         id=model.id,
         alias=model.alias,
         device=device,
         size=model.file_size_mb,
-        cached=model.id in cached_models,
-        loaded=model.id in loaded_models,
+        cached=cached_val,
+        loaded=loaded_val,
         backend=backend
     )
 
@@ -90,13 +94,17 @@ def get_all_models_with_cache_state():
             device = "CPU"
         else:
             device = "Unknown"
+        cached_val = model.id in cached_models
+        loaded_val = model.id in loaded_models
+        cached_val = cached_val if isinstance(cached_val, bool) else 'Unknown'
+        loaded_val = loaded_val if isinstance(loaded_val, bool) else 'Unknown'
         models.append(Model(
             id=model.id,
             alias=model.alias,
             device=device,
             size=model.file_size_mb,
-            cached=model.id in cached_models,
-            loaded=model.id in loaded_models,
+            cached=cached_val,
+            loaded=loaded_val,
             backend="FoundryLocal"
         ))
     return models

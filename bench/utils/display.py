@@ -41,6 +41,11 @@ def display_models_with_rich(models: List[Model]):
         if model.device == "GPU":
             row_style = f"bright_green" if model.cached else f"green"
 
+        def bool_to_str(val):
+            if isinstance(val, bool):
+                return "Yes" if val else "No"
+            return "Unknown"
+
         table.add_row(
             str(index),
             model.id,
@@ -48,8 +53,8 @@ def display_models_with_rich(models: List[Model]):
             model.device,
             model.backend,
             f"{model.size:,}" if model.size else "Unknown",
-            "Yes" if model.cached else "No",
-            "Yes" if model.loaded else "No",
+            bool_to_str(model.cached),
+            bool_to_str(model.loaded),
             style=row_style
         )
 

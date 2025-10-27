@@ -1,15 +1,13 @@
 import json
 import os
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'config.json')
-
 def load_config():
     """Load and validate the configuration file."""
     if not os.path.exists(CONFIG_PATH):
         raise FileNotFoundError(f"Configuration file not found at {CONFIG_PATH}")
 
-    with open(CONFIG_PATH, 'r') as file:
-        config = json.load(file)
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        config = json.load(f)
 
     # Validate prompt sets
     if 'prompt_sets' not in config:
@@ -43,5 +41,14 @@ def load_config():
 
 def get_bench_result_path():
     """Retrieve the path for storing benchmark results."""
-    config = load_config()
-    return config.get("bench_result_path", "output/bench_result.json")
+    return _CONFIG.get("bench_result_path", "output/bench_result.json")
+
+def get_config_value(key, default=None):
+    """
+    Retrieve a value from the configuration by key, with optional default.
+    Usage: get_config_value('debug', default=False)
+    """
+    return _CONFIG.get(key, default)
+
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+_CONFIG = load_config()

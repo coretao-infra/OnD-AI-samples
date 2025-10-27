@@ -23,8 +23,11 @@
     },
     "Ollama": {
       "endpoint": "http://localhost:11434/v1",
+      "endpoint_management": "http://localhost:11434/v1/models",
+      "api_generate_endpoint": "http://localhost:11434/api/generate",
       "active": true
     }
   },
-  "bench_result_path": "output/bench_result.json"
+  "bench_result_path": "output/bench_result.json",
+  "debug": true
 }
