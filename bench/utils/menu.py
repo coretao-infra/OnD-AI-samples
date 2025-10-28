@@ -3,7 +3,6 @@ from rich.table import Table
 
 from utils.display import display_models_with_rich
 from utils.display import display_backends_with_rich
-from utils.llm import select_backend
 import platform
 
 
