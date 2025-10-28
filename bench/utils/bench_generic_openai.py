@@ -1,37 +1,20 @@
+
 import openai
-from utils.llm_schema import Model
 import requests
 import re
 from urllib.parse import urlparse
+import time
+from utils.llm_schema import Model, BenchmarkResult
+from utils.shared import count_tokens
+from utils.display import display_models_with_rich
 
-def _create_model_objects(model_names):
-    """Helper function to create Model objects from model names."""
-    return [
-        Model(
-            id=name,
-            alias=name,
-            device="Cloud",
-            size=None,  # OpenAI models don't expose size
-            cached=False,
-            loaded=False
-        )
-        for name in model_names
-    ]
 
-def build_openai_auth_headers(backend_config):
-    """Return headers dict with Authorization if required by config, else empty dict."""
-    auth_required = bool(backend_config.get("auth_required", False))
-    headers = {}
-    if auth_required:
-        api_key = backend_config.get("api_key")
-        if not api_key:
-            raise ValueError("OpenAI backend requires authentication but no api_key is set in config.")
-        headers["Authorization"] = f"Bearer {api_key}"
-    return headers
-
-# this is a placeholder function, we dont need to hit generic openai backends yet, because foundrylocal has its own SDK
-def list_openai_models(backend_config):
-    """List all available models from a specific OpenAI-compatible backend config."""
+def get_all_openai_models_with_cache_state(backend_config=None):
+    """
+    List all available models from a specific OpenAI-compatible backend config, as Model objects.
+    """
+    if backend_config is None:
+        raise ValueError("backend_config must be provided for OpenAI model listing.")
     if not backend_config:
         raise ValueError("OpenAI backend configuration is missing.")
     if "endpoint_management" not in backend_config:
@@ -48,19 +31,13 @@ def list_openai_models(backend_config):
     if "data" not in data:
         raise RuntimeError(f"OpenAI backend {url} response missing 'data' field: {data}")
     model_names = [m["id"] for m in data["data"] if "id" in m]
-    if not model_names:
-        raise RuntimeError(f"OpenAI backend {url} returned no models.")
     # Extract device info from endpoint_management (IP or first two TLDs)
-    
     endpoint = backend_config["endpoint_management"]
     device = "Cloud"
-    # Try to extract IP address
     ip_match = re.search(r"(\d+\.\d+\.\d+\.\d+)", endpoint)
     if ip_match:
         device = ip_match.group(1)
     else:
-        # Extract first two TLDs from hostname
-        
         parsed = urlparse(endpoint)
         host = parsed.hostname or ""
         tlds = host.split(".")
@@ -68,15 +45,87 @@ def list_openai_models(backend_config):
             device = ".".join(tlds[-2:])
         elif host:
             device = host
+    backend = backend_config.get("handler", "OpenAI")
+    # For LMStudio, all models listed are local and thus 'cached' is True
+    is_lmstudio = backend_config.get("endpoint", "").startswith("http://localhost:1234")
+    cached_val = True if is_lmstudio else False
     return [
         Model(
             id=name,
             alias=name,
             device=device,
-            size=None,  # OpenAI models don't expose size
-            cached=False,
+            size=None,  # OpenAI/LMStudio models don't expose size
+            cached=cached_val,
             loaded=False,
-            backend=backend_config.get("name")
+            backend=backend
         )
         for name in model_names
     ]
+
+def build_openai_auth_headers(backend_config):
+    """Return headers dict with Authorization if required by config, else empty dict."""
+    auth_required = bool(backend_config.get("auth_required", False))
+    headers = {}
+    if auth_required:
+        api_key = backend_config.get("api_key")
+        if not api_key:
+            raise ValueError("OpenAI backend requires authentication but no api_key is set in config.")
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
+
+
+# Streaming inference for OpenAI
+def run_openai_inference(model_id: str, messages, max_tokens: int, backend_config=None):
+    """
+    Run streaming inference using OpenAI API. Returns the concatenated response text.
+    """
+    if backend_config is None:
+        raise ValueError("backend_config must be provided for OpenAI inference.")
+
+    endpoint = backend_config.get("endpoint", "https://api.openai.com/v1")
+    auth_required = bool(backend_config.get("auth_required"))
+    api_key = backend_config.get("api_key") if auth_required else None
+
+    # Only pass api_key if required, else omit for local endpoints (e.g., LMStudio)
+    if auth_required and not api_key:
+        raise ValueError("API key required but not provided in backend config.")
+
+    client = openai.OpenAI(
+        api_key=api_key,
+        base_url=endpoint
+    )
+    try:
+        stream = client.chat.completions.create(
+            model=model_id,
+            messages=messages,
+            stream=True,
+            max_tokens=max_tokens
+        )
+        response_text = ""
+        for chunk in stream:
+            if hasattr(chunk, 'choices') and chunk.choices:
+                content = chunk.choices[0].delta.content if chunk.choices[0].delta.content else ""
+                print(content, end="", flush=True)
+                response_text += content
+            else:
+                print("[ERROR] Invalid chunk format.", flush=True)
+        print()
+        return response_text
+    except Exception as e:
+        print(f"[ERROR] OpenAI inference failed: {e}")
+        return ""
+
+def openai_bench_inference(models_instance, system_prompt, user_prompt, max_tokens=None, backend_config=None):
+    """
+    Run benchmark inference using OpenAI backend.
+    """
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+    # backend_config must be passed from the backend object (models_instance)
+    if not backend_config and hasattr(models_instance, 'backend_config'):
+        backend_config = models_instance.backend_config
+    if not backend_config:
+        raise ValueError("backend_config must be provided for OpenAI bench inference.")
+    return run_openai_inference(models_instance.id, messages, max_tokens, backend_config)

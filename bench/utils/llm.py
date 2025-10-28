@@ -1,6 +1,6 @@
 from datetime import datetime
 from utils.config import load_config, get_bench_result_path
-from utils.bench_generic_openai import list_openai_models
+from utils.bench_generic_openai import get_all_openai_models_with_cache_state, openai_bench_inference
 from utils.bench_foundrylocal import get_all_models_with_cache_state, foundry_bench_inference
 from utils.bench_ollama import get_all_ollama_models_with_cache_state, ollama_bench_inference
 from utils.llm_schema import Model, BenchmarkResult
@@ -87,7 +87,7 @@ def consolidated_model_list(backends):
         handler = backend_cfg.get("handler")
         name = backend_cfg.get("name")
         if handler == "OpenAI":
-            models.extend(list_openai_models(backend_cfg))
+            models.extend(get_all_openai_models_with_cache_state(backend_cfg))
         elif handler == "FoundryLocal":
             models.extend(get_all_models_with_cache_state())
         elif handler == "Ollama":
@@ -203,6 +203,8 @@ def bench_inference(models_instance, prompt_set_name):
         response_text = foundry_bench_inference(models_instance, system_prompt, user_prompt)
     elif backend == "Ollama":
         response_text = ollama_bench_inference(models_instance, system_prompt, user_prompt, max_tokens=max_tokens)
+    elif backend == "OpenAI":
+        response_text = openai_bench_inference(models_instance, system_prompt, user_prompt, max_tokens=max_tokens)
     else:
         response_text = f"Backend {backend} not supported for inference."
 
