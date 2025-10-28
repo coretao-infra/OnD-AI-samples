@@ -4,7 +4,7 @@
 ## Overview
 This project is designed to benchmark different LLM models using a menu-driven UI. It allows users to compare models based on various metrics such as token counts, response time, and more. The project is modular and extensible, making it easy to add new features and models.
 
-The initial project is focused on Azure Foundry Local but can be expanded to support more models.
+The project supports multiple AI backends including **Azure Foundry Local**, **Ollama**, **OpenAI API**, and **LMStudio**, allowing comprehensive benchmarking across local and cloud-based models.
 
 ## Requisites
 
@@ -15,6 +15,10 @@ The initial project is focused on Azure Foundry Local but can be expanded to sup
    https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/get-started#option-1-quick-cli-setup
 - Git for cloning the repository
    https://git-scm.com/downloads/win
+- **Optional**: Ollama for local model inference
+   https://ollama.ai/
+- **Optional**: LMStudio for local OpenAI-compatible API
+   https://lmstudio.ai/
 
 ### Hardware Requirements
 - At least 32+ GB RAM
@@ -27,6 +31,7 @@ The following key packages are referenced within the codebase.
 - `wmi`: For querying system hardware information
 - `tiktoken`: For token counting
 - `requests`: For API interactions
+- `openai`: For OpenAI API and LMStudio compatibility
 
 ## How to Run Benchmarks
 1. **Clone the repository:**
@@ -72,10 +77,19 @@ When you run `python -m app`, you'll see a menu like this:
 └────────┴───────────────────────────┘
 ```
 
+### Backend Selection
+The tool supports multiple backends:
+- **FoundryLocal**: Azure Foundry Local models running locally
+- **Ollama**: Local Ollama server models
+- **OpenAI**: OpenAI-compatible APIs (including LMStudio)
+
+Use option `2` to select your preferred backend before running benchmarks.
+
 ### To run a benchmark:
-1. Select option `4` (Run Benchmark).
-2. Choose a model from the displayed list by entering its number.
-3. The benchmark will run and stream the model's response and stats to the console.
+1. Select option `2` to choose your backend (FoundryLocal, Ollama, or OpenAI).
+2. Select option `4` (Run Benchmark).
+3. Choose a model from the displayed list by entering its number.
+4. The benchmark will run and stream the model's response and stats to the console.
 
 ### To view hardware info:
 Select option `6` to display details about your CPU, NPU, GPU, and system RAM.
@@ -143,6 +157,24 @@ When you select option `1`, you'll see all available models with their details:
 
 For more detailed information on Foundry Local, refer to the [official documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/get-started).
 
+## Working with Other Backends
+
+### Ollama Setup
+If using Ollama:
+1. Install Ollama from https://ollama.ai/
+2. Start the Ollama service
+3. Pull models using `ollama pull <model-name>`
+4. Select "Ollama" backend in the benchmark menu
+
+### LMStudio/OpenAI Setup
+If using LMStudio or OpenAI API:
+1. For LMStudio: Start the local server on http://localhost:1234
+2. For OpenAI: Ensure you have API access and credentials
+3. Select "OpenAI" backend in the benchmark menu
+4. Models will be automatically discovered and listed
+
+**Note**: LMStudio compatibility includes both `chat/completions` and `completions` endpoints with streaming support.
+
 For more information on Foundry Local and managing models, see the [official documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-local/get-started).
 
 ## Where is Benchmark Output Saved?
@@ -209,19 +241,25 @@ This file contains a list of all benchmark runs, including:
 - [ ] Save whether the model was loaded or not as part of the benchmark result, so it is captured in the output.
 - [ ] Add functionality to query shared and dedicated VRAM accurately.
 - [ ] Fix system RAM detection logic to ensure proper reporting.
+- [x] Add support for Ollama framework integration
+- [x] Add support for OpenAI-compatible APIs (including LMStudio)
+- [x] Implement OpenAI streaming inference with proper content extraction
+- [ ] Resolve LMStudio API compatibility issues (stateful behavior, inconsistent responses)
 
 ## FUTURE
 - [ ] Implement queuing for benchmarking tasks.
-- [ ] Add support for Ollama framework integration
 - [ ] Add support for additional backend engines:
   - [ ] llama.cpp 
   - [ ] vLLM 
 - [ ] Add Cloud-based AI endpoints for comparison benchmarking:
   - [ ] Azure OpenAI Service
   - [ ] Azure AI Foundry APIs
-  - [ ] OpenAI API
+  - [ ] OpenAI API (cloud)
   - [ ] Anthropic Claude
   - [ ] Google Gemini
+- [ ] Enhanced streaming diagnostics and performance monitoring
+- [ ] Multi-backend benchmark comparison reports
+- [ ] Model performance regression testing
 
 ## Notes
 - Ensure the virtual environment is activated before running any scripts.
