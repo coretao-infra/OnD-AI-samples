@@ -36,9 +36,7 @@
       "handler": "OpenAI",
       "endpoint": "http://localhost:1234/v1",
       "endpoint_management": "http://localhost:1234/v1/models",
-      "api_chat_endpoint": "http://localhost:1234/v1/chat/completions",
-      "api_completion_endpoint": "http://localhost:1234/v1/completions",
-      "api_embedding_endpoint": "http://localhost:1234/v1/embeddings",
+      "api_chat_completions": "http://localhost:1234/v1/chat/completions",
       "auth_required": false,
       "active": true
     }

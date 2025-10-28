@@ -49,8 +49,9 @@ def get_all_openai_models_with_cache_state(backend_config=None):
     # For LMStudio, all models listed are local and thus 'cached' is True
     is_lmstudio = backend_config.get("endpoint", "").startswith("http://localhost:1234")
     cached_val = True if is_lmstudio else False
-    return [
-        Model(
+    models = []
+    for name in model_names:
+        model = Model(
             id=name,
             alias=name,
             device=device,
@@ -59,8 +60,9 @@ def get_all_openai_models_with_cache_state(backend_config=None):
             loaded=False,
             backend=backend
         )
-        for name in model_names
-    ]
+        model.backend_config = backend_config  # Attach backend config for inference
+        models.append(model)
+    return models
 
 def build_openai_auth_headers(backend_config):
     """Return headers dict with Authorization if required by config, else empty dict."""
@@ -76,30 +78,31 @@ def build_openai_auth_headers(backend_config):
 
 # Streaming inference for OpenAI
 def run_openai_inference(model_id: str, messages, max_tokens: int, backend_config=None):
-    """
-    Run streaming inference using OpenAI API. Returns the concatenated response text.
-    """
+    print("welcome_inference")
     if backend_config is None:
         raise ValueError("backend_config must be provided for OpenAI inference.")
 
-    endpoint = backend_config.get("endpoint", "https://api.openai.com/v1")
+    endpoint = backend_config.get("endpoint")
     auth_required = bool(backend_config.get("auth_required"))
-    api_key = backend_config.get("api_key") if auth_required else None
-
-    # Only pass api_key if required, else omit for local endpoints (e.g., LMStudio)
-    if auth_required and not api_key:
-        raise ValueError("API key required but not provided in backend config.")
+    # Always pass a non-empty api_key; use dummy for LMStudio/local
+    if auth_required:
+        api_key = backend_config.get("api_key")
+        if not api_key:
+            raise ValueError("API key required but not provided in backend config.")
+    else:
+        api_key = "not-needed"
 
     client = openai.OpenAI(
         api_key=api_key,
         base_url=endpoint
     )
+    
     try:
+        # Use standard chat completions API which works with LMStudio
         stream = client.chat.completions.create(
             model=model_id,
             messages=messages,
-            stream=True,
-            max_tokens=max_tokens
+            stream=True
         )
         response_text = ""
         for chunk in stream:
@@ -107,8 +110,6 @@ def run_openai_inference(model_id: str, messages, max_tokens: int, backend_confi
                 content = chunk.choices[0].delta.content if chunk.choices[0].delta.content else ""
                 print(content, end="", flush=True)
                 response_text += content
-            else:
-                print("[ERROR] Invalid chunk format.", flush=True)
         print()
         return response_text
     except Exception as e:
